@@ -1,0 +1,409 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Checklist Alat dan Bahan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+  /* Layout: lembar form satu kolom, baris barang berupa grid yang berubah jadi tumpukan di layar HP. */
+  :root {
+    --bg: #eef1f4;
+    --surface: #ffffff;
+    --ink: #16202b;
+    --muted: #5a6877;
+    --line: #c3ccd5;
+    --soft: #e6ebf0;
+    --accent: #0b4f8a;
+    --accent-ink: #ffffff;
+    --solar: #e8a317;
+    --ok: #17794a;
+    --ok-bg: #dff3e8;
+    --no: #b3261e;
+    --no-bg: #fbe3e1;
+    --font-display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+    --font-body: "Barlow", "Segoe UI", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f151c; --surface: #17202a; --ink: #e5eaf0; --muted: #98a6b5; --line: #35424f; --soft: #202c38;
+      --accent: #6db1f0; --accent-ink: #0b1620; --solar: #f0b43a;
+      --ok: #5fcf93; --ok-bg: #173a29; --no: #ff8f86; --no-bg: #44201e;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f151c; --surface: #17202a; --ink: #e5eaf0; --muted: #98a6b5; --line: #35424f; --soft: #202c38;
+    --accent: #6db1f0; --accent-ink: #0b1620; --solar: #f0b43a;
+    --ok: #5fcf93; --ok-bg: #173a29; --no: #ff8f86; --no-bg: #44201e;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg); color: var(--ink); font: 15px/1.4 var(--font-body);
+    padding-block: 14px 40px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .sheet { max-width: 980px; margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-top: 6px solid var(--solar); padding: 20px 18px 28px; }
+  h1 { font: 700 26px/1.1 var(--font-display); letter-spacing: .04em; text-transform: uppercase; text-align: center; margin: 0; text-wrap: balance; }
+  .org { font: 600 15px var(--font-display); letter-spacing: .18em; text-align: center; color: var(--muted); margin: 4px 0 18px; }
+  h2 { font: 700 20px/1.1 var(--font-display); letter-spacing: .05em; text-transform: uppercase; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 2px solid var(--ink); }
+  .hint { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+
+  .meta { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px 10px; max-width: 520px; align-items: center; }
+  .meta label { font-weight: 600; }
+  input, textarea { font: inherit; color: var(--ink); background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 6px 4px; width: 100%; min-width: 0; }
+  input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  input[type="date"] { color-scheme: inherit; }
+
+  .legend { margin: 0 0 10px; padding-left: 18px; font-size: 13px; color: var(--muted); }
+  .legend b { color: var(--ink); font-weight: 600; }
+  .legend li + li { margin-top: 2px; }
+  .key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; margin-bottom: 8px; }
+  .key b.ok { color: var(--ok); } .key b.no { color: var(--no); }
+
+  .bulk { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 10px; font-size: 13px; }
+  .bulk span { color: var(--muted); }
+  button { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+  button.chip { padding: 5px 9px; font-size: 13px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  button[disabled] { opacity: .5; cursor: not-allowed; }
+
+  .grid { --cols: 30px minmax(130px, 1.1fr) 64px 232px minmax(120px, 1.2fr) 34px; }
+  .head, .row { display: grid; grid-template-columns: var(--cols); gap: 0 8px; align-items: center; }
+  .head { background: var(--soft); border: 1px solid var(--line); font: 600 13px var(--font-display); letter-spacing: .06em; text-transform: uppercase; padding: 6px 4px; }
+  .head .h-st { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; }
+  .head .c { text-align: center; }
+  .row { border: 1px solid var(--line); border-top: 0; padding: 4px; }
+  .row.has-miss { background: var(--no-bg); }
+  .row.has-miss .nm { color: var(--no); font-weight: 600; }
+  .no { text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; grid-area: no; }
+  .nm { grid-area: nm; }
+  .qt { grid-area: qt; text-align: center; }
+  .sts { grid-area: sts; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .nt { grid-area: nt; min-width: 0; }
+  .del { grid-area: del; border: 0; background: transparent; color: var(--muted); font-size: 18px; padding: 4px 6px; }
+  .del.armed { color: var(--no); font-size: 12px; font-weight: 600; }
+  .st { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; height: 38px; padding: 0; border-radius: 6px; font-weight: 700; font-size: 18px; line-height: 1; }
+  .st .lb { display: none; font-size: 10px; font-weight: 500; color: var(--muted); letter-spacing: .02em; }
+  .st.ok { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+  .st.no { background: var(--no-bg); border-color: var(--no); color: var(--no); }
+  .miss { display: block; font-size: 12px; font-weight: 600; color: var(--no); padding: 0 4px; }
+  textarea { resize: none; overflow: hidden; display: block; min-height: 32px; }
+  .add { margin-top: 10px; }
+
+  .summary { margin-top: 28px; border: 1px solid var(--line); padding: 12px 14px; background: var(--soft); }
+  .summary h2 { margin: 0 0 8px; font-size: 18px; border-bottom: 0; padding: 0; }
+  .summary ul { margin: 0; padding-left: 18px; }
+  .summary li + li { margin-top: 4px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 22px; }
+  .status { font-size: 13px; color: var(--muted); min-height: 1.4em; margin-top: 8px; }
+  .status.err { color: var(--no); }
+
+  @media (max-width: 760px) {
+    .sheet { padding: 16px 12px 24px; }
+    .head { display: none; }
+    .row { --cols: 28px minmax(0, 1fr) 64px 34px; grid-template-areas: "no nm qt del" "sts sts sts sts" "nt nt nt nt"; gap: 4px 6px; padding: 8px 6px; border-top: 1px solid var(--line); margin-top: -1px; }
+    .st { height: 48px; }
+    .st .lb { display: block; }
+    .st .sy { font-size: 19px; min-height: 19px; }
+    .actions button { flex: 1 1 140px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main class="sheet">
+  <h1>Form Checklist Alat dan Bahan</h1>
+  <div class="org">PLTS ENERCENTRIK</div>
+
+  <p class="hint">Ketuk kotak tahap untuk mengganti status: kosong, lalu ✓ (ada), lalu ✗ (tidak ada). Isian tersimpan di HP atau browser yang dipakai dan tetap ada saat halaman dimuat ulang. Ketuk Simpan di bagian bawah untuk memastikan.</p>
+
+  <div class="meta">
+    <label for="m_proyek">Proyek</label><input id="m_proyek" data-meta="proyek" autocomplete="off">
+    <label for="m_lokasi">Lokasi</label><input id="m_lokasi" data-meta="lokasi" autocomplete="off">
+    <label for="m_tanggal">Tanggal</label><input id="m_tanggal" type="date" data-meta="tanggal">
+    <label for="m_teknisi">Teknisi</label><input id="m_teknisi" data-meta="teknisi" autocomplete="off">
+    <label for="m_cek">Dicek oleh</label><input id="m_cek" data-meta="cek" autocomplete="off">
+  </div>
+
+  <h2>List Alat</h2>
+  <div id="sec-alat"></div>
+
+  <h2>List Bahan</h2>
+  <div id="sec-bahan"></div>
+
+  <section class="summary" aria-live="polite">
+    <h2>Ringkasan Barang Tidak Lengkap</h2>
+    <div id="summary"></div>
+  </section>
+
+  <div class="actions">
+    <button class="primary" id="btnSave" type="button">Simpan</button>
+    <button id="btnPdf" type="button">Simpan PDF</button>
+    <button id="btnReset" type="button">Kosongkan form</button>
+  </div>
+  <div class="status" id="status" role="status"></div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script>
+(function () {
+  var STAGES = ["1 Kantor", "2 Lokasi", "3 Lokasi", "4 Kantor"];
+  var SEC_TITLE = { alat: "Alat", bahan: "Bahan" };
+  var STAGE_DESC = {
+    alat: [
+      ["1 Kantor – Sebelum Berangkat", "Pengecekan kelengkapan alat di kantor sebelum berangkat ke lokasi proyek."],
+      ["2 Lokasi – Hari Pertama", "Pengecekan kelengkapan alat di lokasi proyek pada hari pertama pekerjaan."],
+      ["3 Lokasi – Setelah Proyek Selesai", "Pengecekan kelengkapan alat di lokasi proyek sebelum dibawa kembali ke kantor."],
+      ["4 Kantor – Setelah Kembali", "Pengecekan kelengkapan alat setelah tiba di kantor dan sebelum disimpan."]
+    ],
+    bahan: [
+      ["1 Kantor – Sebelum Berangkat", "Pengecekan kelengkapan bahan di kantor sebelum berangkat ke lokasi proyek."],
+      ["2 Lokasi – Hari Pertama", "Pengecekan kelengkapan bahan di lokasi proyek pada hari pertama pekerjaan."],
+      ["3 Lokasi – Setelah Proyek Selesai", "Pengecekan kelengkapan bahan di lokasi proyek sebelum dibawa kembali ke kantor."],
+      ["4 Kantor – Setelah Kembali", "Pengecekan kelengkapan bahan setelah tiba di kantor dan sebelum disimpan."]
+    ]
+  };
+  var KEY = "enercentrik-checklist-v1";
+  var DEF_ALAT = ["Tangga Lipat","Bor Lucid","Baterai Lucid","Charger Lucid","Bor Dongcheng","Baterai Dongcheng","Charger Dongcheng","Alat Crimping MC4","Clamp Ampere","Probe Multi","Meteran","Palu","Tang Kombinasi","Waterpass","Penitik","Gunting Galvalum","Harness","Helm","Kunci L M6","Mata Bor Kunci L M6","Mata Roofing M8","Mata Roofing M10","Kunci Pas M15","Kunci Pas Klem Gnd","Pendorong Sealent","Gerinda","Roll kabel","Palu Bodem"];
+  var DEF_BAHAN = ["Cable Duct","Double Tape","Konduit","Klem Konduit","Klem Kabel","Skun Baterai","Skun Ferrule","Roofing 40mm","Roofing 65mm","Roofing 100mm","Sealent","Resibon","Sarung Tangan"];
+
+  function mkRow(n) { return { name: n, qty: "", s: [0, 0, 0, 0], note: "" }; }
+  function fresh() { return { meta: {}, alat: DEF_ALAT.map(mkRow), bahan: DEF_BAHAN.map(mkRow) }; }
+
+  var state;
+  try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
+  if (!state || !state.alat || !state.bahan) state = fresh();
+  if (!state.meta) state.meta = {};
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); return true; } catch (e) { return false; } }
+  function hhmm() { try { return new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } }
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  var SYM = ["", "✓", "✗"], CLS = ["", "ok", "no"];
+  function missing(r) { var o = []; r.s.forEach(function (v, i) { if (v === 2) o.push(STAGES[i]); }); return o; }
+
+  function renderSection(sec) {
+    var h = '<ul class="legend">' + STAGE_DESC[sec].map(function (d) { return "<li><b>" + d[0] + ":</b> " + d[1] + "</li>"; }).join("") + "</ul>";
+    h += '<div class="key"><span><b class="ok">✓</b> = ada</span><span><b class="no">✗</b> = tidak ada</span><span>kosong = belum dicek</span></div>';
+    h += '<div class="bulk"><span>Tandai semua ✓:</span>' + STAGES.map(function (s, i) { return '<button type="button" class="chip" data-all="' + sec + ":" + i + '">' + s + "</button>"; }).join("") + "</div>";
+    h += '<div class="grid"><div class="head"><div class="c">No</div><div>' + SEC_TITLE[sec] + '</div><div class="c">Qty</div><div class="h-st">' + STAGES.map(function (s) { return "<span>" + s + "</span>"; }).join("") + "</div><div>Catatan</div><div></div></div>";
+    state[sec].forEach(function (r, i) {
+      var m = missing(r);
+      h += '<div class="row' + (m.length ? " has-miss" : "") + '">';
+      h += '<div class="no">' + (i + 1) + "</div>";
+      h += '<input class="nm" id="' + sec + "-n-" + i + '" data-f="' + sec + ":" + i + ':name" value="' + esc(r.name) + '" placeholder="Nama ' + SEC_TITLE[sec].toLowerCase() + '" aria-label="Nama ' + SEC_TITLE[sec].toLowerCase() + " " + (i + 1) + '">';
+      h += '<input class="qt" id="' + sec + "-q-" + i + '" data-f="' + sec + ":" + i + ':qty" value="' + esc(r.qty) + '" placeholder="Qty" inputmode="numeric" aria-label="Qty ' + (i + 1) + '">';
+      h += '<div class="sts">' + r.s.map(function (v, k) {
+        return '<button type="button" class="st ' + CLS[v] + '" data-t="' + sec + ":" + i + ":" + k + '" aria-label="' + esc(r.name || "Barang " + (i + 1)) + ", " + STAGES[k] + ": " + (v === 1 ? "ada" : v === 2 ? "tidak ada" : "belum dicek") + '"><span class="lb">' + STAGES[k] + '</span><span class="sy">' + SYM[v] + "</span></button>";
+      }).join("") + "</div>";
+      h += '<div class="nt">' + (m.length ? '<span class="miss">Tidak ada saat: ' + m.join(", ") + "</span>" : "") + '<textarea rows="1" id="' + sec + "-c-" + i + '" data-f="' + sec + ":" + i + ':note" placeholder="Catatan" aria-label="Catatan ' + (i + 1) + '">' + esc(r.note) + "</textarea></div>";
+      h += '<button type="button" class="del" data-del="' + sec + ":" + i + '" aria-label="Hapus baris ' + (i + 1) + '">×</button></div>';
+    });
+    h += '</div><button type="button" class="add" data-add="' + sec + '">+ Tambah ' + SEC_TITLE[sec].toLowerCase() + "</button>";
+    document.getElementById("sec-" + sec).innerHTML = h;
+  }
+
+  function renderSummary() {
+    var items = [];
+    ["alat", "bahan"].forEach(function (sec) {
+      state[sec].forEach(function (r) {
+        var m = missing(r);
+        if (m.length && r.name.trim()) {
+          items.push("<li><b>" + esc(r.name) + "</b> (" + SEC_TITLE[sec] + (r.qty ? ", qty " + esc(r.qty) : "") + ") tidak ada saat " + m.join(", ") + (r.note.trim() ? ". Catatan: " + esc(r.note.trim()) : "") + "</li>");
+        }
+      });
+    });
+    document.getElementById("summary").innerHTML = items.length ? "<ul>" + items.join("") + "</ul>" : "<div>Belum ada barang yang ditandai tidak ada.</div>";
+  }
+
+  function autosize(t) { t.style.height = "auto"; t.style.height = Math.max(32, t.scrollHeight) + "px"; }
+  function renderAll() {
+    renderSection("alat"); renderSection("bahan"); renderSummary();
+    document.querySelectorAll("textarea").forEach(autosize);
+  }
+
+  function setStatus(msg, isErr) {
+    var el = document.getElementById("status");
+    el.textContent = msg || "";
+    el.className = "status" + (isErr ? " err" : "");
+  }
+
+  var armedBtn = null, armedTimer = null;
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("button") : null;
+    if (!b) return;
+    var p;
+    if (b.dataset.t) {
+      p = b.dataset.t.split(":");
+      var r = state[p[0]][+p[1]]; r.s[+p[2]] = (r.s[+p[2]] + 1) % 3;
+      save(); renderAll();
+    } else if (b.dataset.all) {
+      p = b.dataset.all.split(":");
+      state[p[0]].forEach(function (r) { if (r.s[+p[1]] === 0) r.s[+p[1]] = 1; });
+      save(); renderAll();
+    } else if (b.dataset.add) {
+      state[b.dataset.add].push(mkRow("")); save(); renderAll();
+      var list = state[b.dataset.add]; var ni = document.getElementById(b.dataset.add + "-n-" + (list.length - 1));
+      if (ni) ni.focus();
+    } else if (b.dataset.del) {
+      if (armedBtn === b) {
+        clearTimeout(armedTimer); armedBtn = null;
+        p = b.dataset.del.split(":");
+        state[p[0]].splice(+p[1], 1); save(); renderAll();
+      } else {
+        if (armedBtn) { armedBtn.classList.remove("armed"); armedBtn.textContent = "×"; }
+        armedBtn = b; b.classList.add("armed"); b.textContent = "Hapus?";
+        clearTimeout(armedTimer);
+        armedTimer = setTimeout(function () { if (armedBtn) { armedBtn.classList.remove("armed"); armedBtn.textContent = "×"; armedBtn = null; } }, 3000);
+      }
+    } else if (b.id === "btnSave") {
+      if (save()) setStatus("Tersimpan pukul " + hhmm() + " di browser ini. Isian tetap ada saat halaman dimuat ulang.");
+      else setStatus("Browser ini memblokir penyimpanan, jadi isian bisa hilang saat dimuat ulang. Gunakan Simpan PDF agar hasilnya tidak hilang.", true);
+    } else if (b.id === "btnReset") {
+      if (b.dataset.armed === "1") {
+        b.dataset.armed = ""; b.textContent = "Kosongkan form";
+        state = fresh(); save();
+        document.querySelectorAll("[data-meta]").forEach(function (i) { i.value = ""; });
+        renderAll(); setStatus("Form dikosongkan.");
+      } else {
+        b.dataset.armed = "1"; b.textContent = "Ketuk lagi untuk mengosongkan";
+        setTimeout(function () { b.dataset.armed = ""; b.textContent = "Kosongkan form"; }, 3500);
+      }
+    }
+  });
+
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.f) {
+      var p = t.dataset.f.split(":");
+      state[p[0]][+p[1]][p[2]] = t.value; save();
+      if (t.tagName === "TEXTAREA") autosize(t);
+      renderSummary();
+    } else if (t.dataset && t.dataset.meta) {
+      state.meta[t.dataset.meta] = t.value; save();
+    }
+  });
+  document.querySelectorAll("[data-meta]").forEach(function (i) { i.value = state.meta[i.dataset.meta] || ""; });
+  window.addEventListener("resize", function () { document.querySelectorAll("textarea").forEach(autosize); });
+
+  /* ---------- PDF ---------- */
+  var downloads = null;
+  var btnPdf = document.getElementById("btnPdf");
+  function initDownloads() {
+    if (!(window.claude && window.claude.use)) { btnPdf.disabled = true; setStatus("Simpan PDF hanya tersedia saat halaman dibuka lewat Claude."); return; }
+    window.claude.use("downloads").then(function (d) {
+      downloads = d;
+      if (!d) { btnPdf.disabled = true; setStatus("Simpan PDF tidak tersedia di tampilan ini. Buka halaman lewat aplikasi atau situs Claude."); }
+    }, function () { btnPdf.disabled = true; });
+  }
+
+  function buildPdf() {
+    var JS = window.jspdf && window.jspdf.jsPDF;
+    if (!JS) throw new Error("Pustaka PDF belum termuat. Periksa koneksi lalu muat ulang halaman.");
+    var doc = new JS({ unit: "mm", format: "a4" });
+    var W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 14;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(20);
+    doc.text("FORM CHECKLIST ALAT DAN BAHAN", W / 2, 16, { align: "center" });
+    doc.setFontSize(11); doc.text("PLTS ENERCENTRIK", W / 2, 22, { align: "center" });
+
+    var meta = [["Proyek", state.meta.proyek], ["Lokasi", state.meta.lokasi], ["Tanggal", state.meta.tanggal], ["Teknisi", state.meta.teknisi], ["Dicek oleh", state.meta.cek]];
+    var y = 31;
+    doc.setFontSize(10);
+    meta.forEach(function (m) {
+      doc.setFont("helvetica", "bold"); doc.text(m[0], M, y);
+      doc.setFont("helvetica", "normal"); doc.text(": " + (m[1] || "__________"), M + 26, y);
+      y += 5.6;
+    });
+    y += 3;
+
+    ["alat", "bahan"].forEach(function (sec) {
+      if (y > H - 70) { doc.addPage(); y = 16; }
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(20);
+      doc.text("List " + SEC_TITLE[sec], M, y); y += 4.5;
+      doc.setFontSize(7.5);
+      STAGE_DESC[sec].forEach(function (d) {
+        doc.setFont("helvetica", "bold"); doc.text(d[0] + ":", M, y);
+        var w = doc.getTextWidth(d[0] + ": ");
+        doc.setFont("helvetica", "normal");
+        var lines = doc.splitTextToSize(d[1], W - 2 * M - w);
+        doc.text(lines, M + w, y); y += 3.4 * lines.length;
+      });
+      y += 1.5;
+      var body = state[sec].map(function (r, i) {
+        var m = missing(r);
+        var note = (m.length ? "Tidak ada saat: " + m.join(", ") : "") + (m.length && r.note.trim() ? "\n" : "") + r.note.trim();
+        return [String(i + 1), r.name, r.qty].concat(r.s.map(function (v) { return v === 1 ? "V" : v === 2 ? "X" : ""; })).concat([note]);
+      });
+      doc.autoTable({
+        startY: y, margin: { left: M, right: M, bottom: 14 },
+        head: [[{ content: "No", rowSpan: 2 }, { content: SEC_TITLE[sec], rowSpan: 2 }, { content: "Qty", rowSpan: 2 }, { content: "Pengecekan", colSpan: 4 }, { content: "Catatan", rowSpan: 2 }], STAGES],
+        body: body, theme: "grid",
+        styles: { font: "helvetica", fontSize: 8.5, cellPadding: 1.5, lineColor: [150, 160, 170], lineWidth: 0.2, textColor: [25, 30, 40], valign: "middle" },
+        headStyles: { fillColor: [230, 234, 238], textColor: [20, 25, 35], halign: "center", fontStyle: "bold" },
+        columnStyles: { 0: { cellWidth: 9, halign: "center" }, 2: { cellWidth: 13, halign: "center" }, 3: { cellWidth: 15 }, 4: { cellWidth: 15 }, 5: { cellWidth: 15 }, 6: { cellWidth: 15 }, 7: { cellWidth: 46, fontSize: 7.5 } },
+        didParseCell: function (d) {
+          if (d.section !== "body") return;
+          var r = state[sec][d.row.index];
+          if (d.column.index >= 3 && d.column.index <= 6) {
+            d.cell.styles.halign = "center"; d.cell.styles.fontStyle = "bold";
+            if (d.cell.raw === "V") d.cell.styles.textColor = [23, 121, 74];
+            if (d.cell.raw === "X") { d.cell.styles.textColor = [179, 38, 30]; d.cell.styles.fillColor = [251, 227, 225]; }
+          }
+          if (d.column.index === 1 && r && missing(r).length) { d.cell.styles.textColor = [179, 38, 30]; d.cell.styles.fontStyle = "bold"; }
+        }
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    });
+
+    // Ringkasan
+    var sum = [];
+    ["alat", "bahan"].forEach(function (sec) {
+      state[sec].forEach(function (r) {
+        var m = missing(r);
+        if (m.length && r.name.trim()) sum.push("- " + r.name + " (" + SEC_TITLE[sec] + (r.qty ? ", qty " + r.qty : "") + ") tidak ada saat " + m.join(", ") + (r.note.trim() ? ". Catatan: " + r.note.trim() : ""));
+      });
+    });
+    var sumLines = [];
+    (sum.length ? sum : ["Tidak ada barang yang ditandai tidak ada."]).forEach(function (s) { sumLines = sumLines.concat(doc.splitTextToSize(s, W - 2 * M)); });
+    doc.setFontSize(9);
+    if (y + 8 + sumLines.length * 4.2 > H - 20) { doc.addPage(); y = 16; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.text("Ringkasan Barang Tidak Lengkap", M, y); y += 5;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    sumLines.forEach(function (ln) {
+      if (y > H - 16) { doc.addPage(); y = 16; }
+      doc.text(ln, M, y); y += 4.2;
+    });
+
+    // Tanda tangan
+    y += 8;
+    if (y + 32 > H - 10) { doc.addPage(); y = 20; }
+    doc.setFontSize(9.5);
+    var cw = (W - 2 * M) / 2;
+    ["Teknisi", "Dicek oleh"].forEach(function (lbl, i) {
+      var cx = M + cw * i + cw / 2;
+      doc.line(cx - 28, y + 22, cx + 28, y + 22);
+      doc.text(lbl, cx, y + 27, { align: "center" });
+    });
+    return doc.output("blob");
+  }
+
+  btnPdf.addEventListener("click", function () {
+    if (!downloads) return;
+    setStatus("");
+    var blob;
+    try { blob = buildPdf(); } catch (err) { setStatus(err.message || "Gagal membuat PDF.", true); return; }
+    var nm = "Checklist Alat dan Bahan" + (state.meta.proyek ? " - " + state.meta.proyek : "") + (state.meta.tanggal ? " - " + state.meta.tanggal : "") + ".pdf";
+    nm = nm.replace(/[\\\/:*?"<>|]/g, "-");
+    downloads.save({ filename: nm, data: blob }).then(function () {
+      setStatus("PDF disimpan.");
+    }, function (err) {
+      if (err && err.code === "declined") setStatus("Penyimpanan dibatalkan.");
+      else setStatus("PDF belum bisa disimpan (" + ((err && err.code) || "error") + ").", true);
+    });
+  });
+
+  renderAll();
+  initDownloads();
+})();
+</script>
+
+</body></html>
