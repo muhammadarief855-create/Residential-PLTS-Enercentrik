@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checklist Alat dan Bahan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+  /* Layout: lembar form satu kolom; baris barang berupa grid yang menumpuk di layar HP. */
+  :root {
+    --bg: #eef1f4; --surface: #ffffff; --ink: #16202b; --muted: #5a6877; --line: #c3ccd5; --soft: #e6ebf0;
+    --accent: #0b4f8a; --accent-ink: #ffffff; --solar: #e8a317;
+    --ok: #17794a; --ok-bg: #dff3e8; --no: #b3261e; --no-bg: #fbe3e1;
+    --font-display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+    --font-body: "Barlow", "Segoe UI", Arial, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f151c; --surface: #17202a; --ink: #e5eaf0; --muted: #98a6b5; --line: #35424f; --soft: #202c38;
+      --accent: #6db1f0; --accent-ink: #0b1620; --solar: #f0b43a;
+      --ok: #5fcf93; --ok-bg: #173a29; --no: #ff8f86; --no-bg: #44201e;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 var(--font-body);
+    padding-block: 14px 40px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .sheet { max-width: 980px; margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-top: 6px solid var(--solar); padding: 20px 18px 28px; }
+  h1 { font: 700 26px/1.1 var(--font-display); letter-spacing: .04em; text-transform: uppercase; text-align: center; margin: 0; text-wrap: balance; }
+  .org { font: 600 15px var(--font-display); letter-spacing: .18em; text-align: center; color: var(--muted); margin: 4px 0 16px; }
+  h2 { font: 700 20px/1.1 var(--font-display); letter-spacing: .05em; text-transform: uppercase; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 2px solid var(--ink); }
+  .hint { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+
+  .bar { display: grid; gap: 8px; padding: 12px; background: var(--soft); border: 1px solid var(--line); margin-bottom: 14px; }
+  .bar label { font: 600 13px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .bar-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .saved { font-size: 12.5px; color: var(--muted); }
+  .saved.warn { color: var(--no); font-weight: 600; }
+  select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 9px 8px; width: 100%; min-width: 0; }
+  .banner { border: 2px solid var(--accent); background: var(--surface); padding: 12px 14px; margin-bottom: 14px; }
+  .banner p { margin: 0 0 8px; }
+
+  [hidden] { display: none !important; }
+  .savebar { position: sticky; bottom: 0; z-index: 5; background: var(--surface); border-top: 2px solid var(--ink); margin: 24px -18px -28px; padding: 8px 18px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .savebar .status { margin: 0 0 6px; }
+  .savebtns { display: flex; gap: 8px; }
+  .savebtns .primary { flex: 1; font-size: 16px; padding: 11px 12px; }
+  .saved.ok { color: var(--ok); font-weight: 600; }
+  .sync { display: grid; gap: 6px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .syncrow { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+  .syncrow input { flex: 1 1 240px; border: 1px solid var(--line); border-radius: 6px; padding: 8px; background: var(--surface); }
+  details { font-size: 13px; }
+  summary { cursor: pointer; color: var(--accent); font-weight: 600; padding: 4px 0; }
+  details ol { margin: 6px 0; padding-left: 20px; }
+  details li + li { margin-top: 4px; }
+  pre { background: var(--surface); border: 1px solid var(--line); padding: 8px; overflow-x: auto; font-size: 12px; margin: 6px 0; user-select: all; }
+  .share-box { margin-top: 8px; }
+  .share-box textarea { width: 100%; font-size: 12px; border: 1px solid var(--line); padding: 6px; height: 64px; resize: none; background: var(--surface); color: var(--ink); }
+
+  .meta { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px 10px; max-width: 520px; align-items: center; }
+  .meta label { font-weight: 600; }
+  input, textarea { font: inherit; color: var(--ink); background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 6px 4px; width: 100%; min-width: 0; }
+  input:focus-visible, textarea:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .legend { margin: 0 0 10px; padding-left: 18px; font-size: 13px; color: var(--muted); }
+  .legend b { color: var(--ink); font-weight: 600; }
+  .legend li + li { margin-top: 2px; }
+  .key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; margin-bottom: 8px; }
+  .key b.ok { color: var(--ok); } .key b.no { color: var(--no); }
+  .bulk { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 10px; font-size: 13px; }
+  .bulk span { color: var(--muted); }
+
+  button { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+  button.chip { padding: 5px 9px; font-size: 13px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  button[disabled] { opacity: .5; cursor: not-allowed; }
+
+  .grid { --cols: 30px minmax(130px, 1.1fr) 64px 232px minmax(120px, 1.2fr) 34px; }
+  .head, .row { display: grid; grid-template-columns: var(--cols); gap: 0 8px; align-items: center; }
+  .row { grid-template-areas: "no nm qt sts nt del"; }
+  .head { background: var(--soft); border: 1px solid var(--line); font: 600 13px var(--font-display); letter-spacing: .06em; text-transform: uppercase; padding: 6px 4px; }
+  .head .h-st { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; }
+  .head .c { text-align: center; }
+  .row { border: 1px solid var(--line); border-top: 0; padding: 4px; }
+  .row.has-miss { background: var(--no-bg); }
+  .row.has-miss .nm { color: var(--no); font-weight: 600; }
+  .num { text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; grid-area: no; }
+  .nm { grid-area: nm; }
+  .qt { grid-area: qt; text-align: center; }
+  .sts { grid-area: sts; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .nt { grid-area: nt; min-width: 0; }
+  .del { grid-area: del; border: 0; background: transparent; color: var(--muted); font-size: 18px; padding: 4px 6px; }
+  .del.armed { color: var(--no); font-size: 12px; font-weight: 600; }
+  .st { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 38px; padding: 0; border-radius: 6px; font-weight: 700; font-size: 18px; line-height: 1; }
+  .st .lb { display: none; font-size: 10px; font-weight: 500; color: var(--muted); letter-spacing: .02em; }
+  .st.ok { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+  .st.no { background: var(--no-bg); border-color: var(--no); color: var(--no); }
+  .miss { display: block; font-size: 12px; font-weight: 600; color: var(--no); padding: 0 4px; }
+  textarea { resize: none; overflow: hidden; display: block; min-height: 32px; }
+  .add { margin-top: 10px; }
+
+  .summary { margin-top: 28px; border: 1px solid var(--line); padding: 12px 14px; background: var(--soft); break-inside: avoid; }
+  .summary h2 { margin: 0 0 8px; font-size: 18px; border-bottom: 0; padding: 0; }
+  .summary ul { margin: 0; padding-left: 18px; }
+  .summary li + li { margin-top: 4px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 22px; }
+  .status { font-size: 13px; color: var(--muted); min-height: 1.4em; margin-top: 8px; }
+  .status.err { color: var(--no); }
+  .sign { display: none; }
+
+  @media (max-width: 760px) {
+    .sheet { padding: 16px 12px 24px; }
+    .savebar { margin: 24px -12px -24px; padding-left: 12px; padding-right: 12px; }
+    .head { display: none; }
+    .row { --cols: 28px minmax(0, 1fr) 64px 34px; grid-template-areas: "no nm qt del" "sts sts sts sts" "nt nt nt nt"; gap: 4px 6px; padding: 8px 6px; border-top: 1px solid var(--line); margin-top: -1px; }
+    .st { height: 48px; }
+    .st .lb { display: block; }
+  }
+  @media print {
+    @page { size: A4 portrait; margin: 12mm; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: #fff; padding: 0; }
+    .sheet { border: 0; padding: 0; max-width: none; }
+    .bar, .banner, .hint, .bulk, .add, .del, .actions, .status, .savebar { display: none !important; }
+    .head { display: grid; }
+    .grid { --cols: 26px minmax(0, 1.1fr) 44px 150px minmax(0, 1.2fr) 0px; }
+    .row { --cols: 26px minmax(0, 1.1fr) 44px 150px minmax(0, 1.2fr) 0px; grid-template-areas: "no nm qt sts nt del"; gap: 0 8px; padding: 3px 4px; break-inside: avoid; }
+    .st { height: 28px; } .st .lb { display: none; }
+    .sign { display: flex; gap: 20px; margin-top: 36px; break-inside: avoid; }
+    .sign div { flex: 1; text-align: center; font-size: 13px; }
+    .sign .line { border-bottom: 1px solid #000; height: 56px; margin-bottom: 4px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="sheet">
+  <h1>Form Checklist Alat dan Bahan</h1>
+  <div class="org">PLTS ENERCENTRIK</div>
+
+  <div class="banner" id="banner" hidden>
+    <p id="bannerText"></p>
+    <div class="bar-btns">
+      <button type="button" class="primary" id="btnLoadShared">Muat sebagai checklist baru</button>
+      <button type="button" id="btnIgnoreShared">Abaikan</button>
+    </div>
+  </div>
+
+  <div class="bar">
+    <label for="picker">Checklist tersimpan</label>
+    <select id="picker"></select>
+    <div class="bar-btns">
+      <button type="button" id="btnNew">+ Checklist baru</button>
+      <button type="button" id="btnShare">Bagikan link hasil</button>
+      <button type="button" id="btnDelList">Hapus checklist ini</button>
+    </div>
+    <div class="saved" id="saved"></div>
+    <div class="sync">
+      <label for="dbUrl">Checklist bersama (diisi banyak orang)</label>
+      <div class="saved" id="syncStatus"></div>
+      <div class="syncrow" id="syncSetup">
+        <input id="dbUrl" placeholder="Alamat database Firebase, https://..." autocomplete="off" inputmode="url">
+        <button type="button" id="btnMakeShared">Jadikan bersama</button>
+      </div>
+      <div class="bar-btns" id="syncActive" hidden>
+        <button type="button" class="primary" id="btnTeamLink">Salin link tim</button>
+        <button type="button" id="btnUnlink">Lepas dari bersama</button>
+      </div>
+      <details>
+        <summary>Cara menyiapkan (sekali saja, oleh satu orang)</summary>
+        <ol>
+          <li>Buka console.firebase.google.com, login dengan akun Google, lalu <b>Add project</b>. Nama bebas, Analytics boleh dimatikan.</li>
+          <li>Di menu <b>Build</b> pilih <b>Realtime Database</b>, klik <b>Create Database</b>, pilih lokasi Singapore, lalu mulai dalam <b>locked mode</b>.</li>
+          <li>Buka tab <b>Rules</b>, hapus isinya, tempel teks di bawah, lalu klik <b>Publish</b>.</li>
+          <li>Buka tab <b>Data</b>. Salin alamat di bagian atas (berawalan https://, berakhiran firebasedatabase.app atau firebaseio.com), tempel di kolom di atas, lalu tekan <b>Jadikan bersama</b>.</li>
+          <li>Tekan <b>Salin link tim</b> dan kirim ke teknisi. Siapa pun yang punya link bisa melihat dan mengubah ceklis ini.</li>
+        </ol>
+<pre>{
+  "rules": {
+    "checklists": {
+      "$room": { ".read": true, ".write": true }
+    }
+  }
+}</pre>
+      </details>
+    </div>
+    <div class="share-box" id="shareBox" hidden>
+      <div class="saved">Salin link di bawah lalu kirim lewat WhatsApp. Siapa pun yang membukanya bisa memuat hasil ini.</div>
+      <textarea id="shareText" readonly></textarea>
+    </div>
+  </div>
+
+  <p class="hint">Ketuk kotak tahap untuk mengganti status: kosong, lalu ✓ (ada), lalu ✗ (tidak ada). Setiap ketukan tersimpan otomatis di HP atau browser ini dan terbuka lagi saat link dibuka. Tekan <b>Simpan</b> di bagian bawah untuk memastikan dan melihat konfirmasinya.</p>
+
+  <div class="meta">
+    <label for="m_proyek">Proyek</label><input id="m_proyek" data-meta="proyek" autocomplete="off">
+    <label for="m_lokasi">Lokasi</label><input id="m_lokasi" data-meta="lokasi" autocomplete="off">
+    <label for="m_tanggal">Tanggal</label><input id="m_tanggal" type="date" data-meta="tanggal">
+    <label for="m_teknisi">Teknisi</label><input id="m_teknisi" data-meta="teknisi" autocomplete="off">
+    <label for="m_cek">Dicek oleh</label><input id="m_cek" data-meta="cek" autocomplete="off">
+  </div>
+
+  <h2>List Alat</h2>
+  <div id="sec-alat"></div>
+
+  <h2>List Bahan</h2>
+  <div id="sec-bahan"></div>
+
+  <section class="summary" aria-live="polite">
+    <h2>Ringkasan Barang Tidak Lengkap</h2>
+    <div id="summary"></div>
+  </section>
+
+  <div class="sign"><div><div class="line"></div>Teknisi</div><div><div class="line"></div>Dicek oleh</div></div>
+
+  <div class="savebar">
+    <div class="status" id="status" role="status"></div>
+    <div class="savebtns">
+      <button class="primary" id="btnSave" type="button">Simpan</button>
+      <button id="btnPdf" type="button">Simpan PDF</button>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script>
+(function () {
+  var STAGES = ["1 Kantor", "2 Lokasi", "3 Lokasi", "4 Kantor"];
+  var SEC_TITLE = { alat: "Alat", bahan: "Bahan" };
+  var STAGE_DESC = {
+    alat: [
+      ["1 Kantor – Sebelum Berangkat", "Pengecekan kelengkapan alat di kantor sebelum berangkat ke lokasi proyek."],
+      ["2 Lokasi – Hari Pertama", "Pengecekan kelengkapan alat di lokasi proyek pada hari pertama pekerjaan."],
+      ["3 Lokasi – Setelah Proyek Selesai", "Pengecekan kelengkapan alat di lokasi proyek sebelum dibawa kembali ke kantor."],
+      ["4 Kantor – Setelah Kembali", "Pengecekan kelengkapan alat setelah tiba di kantor dan sebelum disimpan."]
+    ],
+    bahan: [
+      ["1 Kantor – Sebelum Berangkat", "Pengecekan kelengkapan bahan di kantor sebelum berangkat ke lokasi proyek."],
+      ["2 Lokasi – Hari Pertama", "Pengecekan kelengkapan bahan di lokasi proyek pada hari pertama pekerjaan."],
+      ["3 Lokasi – Setelah Proyek Selesai", "Pengecekan kelengkapan bahan di lokasi proyek sebelum dibawa kembali ke kantor."],
+      ["4 Kantor – Setelah Kembali", "Pengecekan kelengkapan bahan setelah tiba di kantor dan sebelum disimpan."]
+    ]
+  };
+  var OLDKEY = "enercentrik-checklist-v1", KEY = "enercentrik-checklist-v2", DBKEY = "enercentrik-db", QKEY = "enercentrik-queue-v1";
+  var DEF_ALAT = ["Tangga Lipat","Bor Lucid","Baterai Lucid","Charger Lucid","Bor Dongcheng","Baterai Dongcheng","Charger Dongcheng","Alat Crimping MC4","Clamp Ampere","Probe Multi","Meteran","Palu","Tang Kombinasi","Waterpass","Penitik","Gunting Galvalum","Harness","Helm","Kunci L M6","Mata Bor Kunci L M6","Mata Roofing M8","Mata Roofing M10","Kunci Pas M15","Kunci Pas Klem Gnd","Pendorong Sealent","Gerinda","Roll kabel","Palu Bodem"];
+  var DEF_BAHAN = ["Cable Duct","Double Tape","Konduit","Klem Konduit","Klem Kabel","Skun Baterai","Skun Ferrule","Roofing 40mm","Roofing 65mm","Roofing 100mm","Sealent","Resibon","Sarung Tangan"];
+  var META_KEYS = ["proyek", "lokasi", "tanggal", "teknisi", "cek"];
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function rnd(n) {
+    var a = new Uint8Array(n), out = "", i, c = "abcdefghijklmnopqrstuvwxyz0123456789";
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    for (i = 0; i < n; i++) out += c.charAt(a[i] % c.length);
+    return out;
+  }
+  function mkRow(n, o) { return { id: rnd(6), name: n, qty: "", s: [0, 0, 0, 0], note: "", o: o || 0 }; }
+  function mkRows(names) { return names.map(function (n, i) { return mkRow(n, (i + 1) * 1000); }); }
+  function uid() { return "l" + Date.now().toString(36) + rnd(4); }
+  function newList(meta) { return { id: uid(), created: Date.now(), updated: Date.now(), meta: meta || {}, alat: mkRows(DEF_ALAT), bahan: mkRows(DEF_BAHAN), shared: null }; }
+  function ensureRows(l) {
+    ["alat", "bahan"].forEach(function (sec) {
+      var seen = {};
+      l[sec].forEach(function (r, i) {
+        if (!r.id || seen[r.id]) r.id = rnd(6);
+        seen[r.id] = 1;
+        if (typeof r.o !== "number") r.o = (i + 1) * 1000;
+        if (!r.s || r.s.length !== 4) r.s = [0, 0, 0, 0];
+        r.name = r.name || ""; r.qty = r.qty || ""; r.note = r.note || "";
+      });
+    });
+  }
+
+  /* ---------- Penyimpanan lokal ---------- */
+  var store, cur, storageOK = true;
+  function loadStore() {
+    try { store = JSON.parse(localStorage.getItem(KEY)); } catch (e) { store = null; storageOK = false; }
+    if (!store || !store.lists) {
+      store = { current: null, lists: {} };
+      try {
+        var old = JSON.parse(localStorage.getItem(OLDKEY));
+        if (old && old.alat && old.bahan) {
+          var l = newList(old.meta || {}); l.alat = old.alat; l.bahan = old.bahan; ensureRows(l);
+          store.lists[l.id] = l; store.current = l.id;
+        }
+      } catch (e) {}
+    }
+    Object.keys(store.lists).forEach(function (id) { ensureRows(store.lists[id]); });
+    var ids = Object.keys(store.lists);
+    if (!store.current || !store.lists[store.current]) {
+      if (ids.length) store.current = ids[0];
+      else { var n = newList(); store.lists[n.id] = n; store.current = n.id; }
+    }
+    cur = store.lists[store.current];
+  }
+  function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+  function persist() {
+    var ok = true;
+    try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { ok = false; }
+    storageOK = ok;
+    return ok;
+  }
+  function save() {
+    cur.updated = Date.now();
+    var ok = persist(), el = $("saved"), d = new Date(cur.updated);
+    if (ok) { el.className = "saved"; el.textContent = "Tersimpan otomatis di perangkat ini pukul " + pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + "."; }
+    else { el.className = "saved warn"; el.textContent = "Browser ini tidak mengizinkan penyimpanan (mungkin mode privat). Hasil akan hilang saat halaman ditutup. Gunakan Bagikan link hasil atau checklist bersama."; }
+  }
+  function label(l) {
+    return (l.meta.proyek || "Tanpa nama") + (l.meta.lokasi ? " – " + l.meta.lokasi : "") + (l.meta.tanggal ? " (" + l.meta.tanggal + ")" : "") + (l.shared ? " · bersama" : "");
+  }
+  function renderPicker() {
+    var ids = Object.keys(store.lists).sort(function (a, b) { return store.lists[b].updated - store.lists[a].updated; });
+    $("picker").innerHTML = ids.map(function (id) { return '<option value="' + id + '"' + (id === store.current ? " selected" : "") + ">" + esc(label(store.lists[id])) + "</option>"; }).join("");
+  }
+  function fillMeta() { META_KEYS.forEach(function (k) { $("m_" + k).value = cur.meta[k] || ""; }); }
+
+  /* ---------- Tampilan ---------- */
+  function missing(r) { var o = []; r.s.forEach(function (v, i) { if (v === 2) o.push(STAGES[i]); }); return o; }
+  var SYM = ["", "✓", "✗"], CLS = ["", "ok", "no"];
+
+  function renderSection(sec) {
+    var h = '<ul class="legend">' + STAGE_DESC[sec].map(function (d) { return "<li><b>" + d[0] + ":</b> " + d[1] + "</li>"; }).join("") + "</ul>";
+    h += '<div class="key"><span><b class="ok">✓</b> = ada</span><span><b class="no">✗</b> = tidak ada</span><span>kosong = belum dicek</span></div>';
+    h += '<div class="bulk"><span>Tandai semua ✓:</span>' + STAGES.map(function (s, i) { return '<button type="button" class="chip" data-all="' + sec + ":" + i + '">' + s + "</button>"; }).join("") + "</div>";
+    h += '<div class="grid"><div class="head"><div class="c">No</div><div>' + SEC_TITLE[sec] + '</div><div class="c">Qty</div><div class="h-st">' + STAGES.map(function (s) { return "<span>" + s + "</span>"; }).join("") + "</div><div>Catatan</div><div></div></div>";
+    cur[sec].forEach(function (r, i) {
+      var m = missing(r), nmLbl = esc(r.name || "Barang " + (i + 1));
+      h += '<div class="row' + (m.length ? " has-miss" : "") + '"><div class="num">' + (i + 1) + "</div>";
+      h += '<input class="nm" id="' + sec + "-n-" + i + '" data-f="' + sec + ":" + i + ':name" value="' + esc(r.name) + '" placeholder="Nama ' + SEC_TITLE[sec].toLowerCase() + '" aria-label="Nama ' + SEC_TITLE[sec].toLowerCase() + " " + (i + 1) + '">';
+      h += '<input class="qt" id="' + sec + "-q-" + i + '" data-f="' + sec + ":" + i + ':qty" value="' + esc(r.qty) + '" placeholder="Qty" inputmode="numeric" aria-label="Qty ' + (i + 1) + '">';
+      h += '<div class="sts">' + r.s.map(function (v, k) {
+        return '<button type="button" class="st ' + CLS[v] + '" data-t="' + sec + ":" + i + ":" + k + '" aria-label="' + nmLbl + ", " + STAGES[k] + ": " + (v === 1 ? "ada" : v === 2 ? "tidak ada" : "belum dicek") + '"><span class="lb">' + STAGES[k] + '</span><span class="sy">' + SYM[v] + "</span></button>";
+      }).join("") + "</div>";
+      h += '<div class="nt">' + (m.length ? '<span class="miss">Tidak ada saat: ' + m.join(", ") + "</span>" : "") + '<textarea rows="1" id="' + sec + "-c-" + i + '" data-f="' + sec + ":" + i + ':note" placeholder="Catatan" aria-label="Catatan ' + (i + 1) + '">' + esc(r.note) + "</textarea></div>";
+      h += '<button type="button" class="del" data-del="' + sec + ":" + i + '" aria-label="Hapus baris ' + (i + 1) + '">×</button></div>';
+    });
+    h += '</div><button type="button" class="add" data-add="' + sec + '">+ Tambah ' + SEC_TITLE[sec].toLowerCase() + "</button>";
+    $("sec-" + sec).innerHTML = h;
+  }
+  function renderSummary() {
+    var items = [];
+    ["alat", "bahan"].forEach(function (sec) {
+      cur[sec].forEach(function (r) {
+        var m = missing(r);
+        if (m.length && r.name.trim()) items.push("<li><b>" + esc(r.name) + "</b> (" + SEC_TITLE[sec] + (r.qty ? ", qty " + esc(r.qty) : "") + ") tidak ada saat " + m.join(", ") + (r.note.trim() ? ". Catatan: " + esc(r.note.trim()) : "") + "</li>");
+      });
+    });
+    $("summary").innerHTML = items.length ? "<ul>" + items.join("") + "</ul>" : "<div>Belum ada barang yang ditandai tidak ada.</div>";
+  }
+  function autosize(t) { t.style.height = "auto"; t.style.height = Math.max(32, t.scrollHeight) + "px"; }
+  function renderAll() {
+    renderSection("alat"); renderSection("bahan"); renderSummary();
+    document.querySelectorAll("textarea[data-f]").forEach(autosize);
+  }
+  function setStatus(msg, isErr) { var el = $("status"); el.textContent = msg || ""; el.className = "status" + (isErr ? " err" : ""); }
+
+  /* ---------- Checklist bersama (Firebase Realtime Database lewat REST) ---------- */
+  var sync = { es: null, tree: undefined, queue: [], sending: false, timer: null, conn: "off", pendingRender: false, recent: {} };
+  try { sync.queue = JSON.parse(localStorage.getItem(QKEY)) || []; } catch (e) { sync.queue = []; }
+  function saveQueue() { try { localStorage.setItem(QKEY, JSON.stringify(sync.queue)); } catch (e) {} }
+
+  function normalizeDb(u) {
+    u = String(u || "").trim().replace(/\/+$/, "");
+    if (!/^https:\/\/[a-z0-9.-]+$/i.test(u)) return "";
+    return u;
+  }
+  function dbPath(sh, path) { return sh.db + "/checklists/" + sh.room + (path ? "/" + path : "") + ".json"; }
+
+  function remoteRow(r) { return { n: r.name, q: r.qty, c: r.note, o: r.o, s0: r.s[0], s1: r.s[1], s2: r.s[2], s3: r.s[3] }; }
+  function toTree(l) {
+    var t = { meta: {}, alat: {}, bahan: {} };
+    META_KEYS.forEach(function (k) { t.meta[k] = l.meta[k] || ""; });
+    ["alat", "bahan"].forEach(function (sec) { l[sec].forEach(function (r) { t[sec][r.id] = remoteRow(r); }); });
+    return t;
+  }
+  function setAt(root, path, val) {
+    if (path === "/" || path === "") return val;
+    var parts = path.split("/").filter(Boolean), node, i, k;
+    if (root === null || typeof root !== "object") root = {};
+    node = root;
+    for (i = 0; i < parts.length - 1; i++) {
+      k = parts[i];
+      if (node[k] === null || typeof node[k] !== "object") node[k] = {};
+      node = node[k];
+    }
+    k = parts[parts.length - 1];
+    if (val === null || val === undefined) delete node[k]; else node[k] = val;
+    return root;
+  }
+  function applyEvent(tree, type, d) {
+    if (type === "put") return setAt(tree, d.path, d.data);
+    if (d.data && typeof d.data === "object") {
+      Object.keys(d.data).forEach(function (k) { tree = setAt(tree, (d.path === "/" ? "" : d.path) + "/" + k, d.data[k]); });
+    }
+    return tree;
+  }
+  function str(v) { return v === undefined || v === null ? "" : String(v); }
+  function st(v) { v = +v; return v === 1 || v === 2 ? v : 0; }
+  function isRecent(key) { return sync.recent[key] && sync.recent[key] > Date.now(); }
+  function markRecent(key, ms) { sync.recent[key] = Date.now() + (ms || 3500); }
+  function rowsFrom(obj, local, sec) {
+    obj = obj && typeof obj === "object" ? obj : {};
+    var rows = Object.keys(obj).filter(function (id) { return obj[id] && typeof obj[id] === "object"; }).map(function (id) {
+      var r = obj[id], lr = null, row, i;
+      for (i = 0; i < local.length; i++) if (local[i].id === id) { lr = local[i]; break; }
+      row = { id: id, name: str(r.n), qty: str(r.q), note: str(r.c), o: +r.o || 0, s: [st(r.s0), st(r.s1), st(r.s2), st(r.s3)] };
+      if (lr) {
+        ["name", "qty", "note"].forEach(function (f) { if (isRecent(sec + ":" + id + ":" + f)) row[f] = lr[f]; });
+        for (i = 0; i < 4; i++) if (isRecent(sec + ":" + id + ":s" + i)) row.s[i] = lr.s[i];
+      }
+      return row;
+    });
+    rows.sort(function (a, b) { return a.o - b.o; });
+    return rows;
+  }
+
+  function setConn(c) { sync.conn = c; renderSync(); }
+  function renderSync() {
+    var on = !!cur.shared, el = $("syncStatus");
+    $("syncSetup").hidden = on; $("syncActive").hidden = !on;
+    if (!on) { el.className = "saved"; el.textContent = "Belum bersama. Isian hanya ada di perangkat ini."; return; }
+    var pend = sync.queue.length;
+    if (sync.conn === "denied") { el.className = "saved warn"; el.textContent = "Ditolak oleh database. Periksa Rules di Firebase."; }
+    else if (sync.conn === "notfound") { el.className = "saved warn"; el.textContent = "Checklist bersama ini tidak ditemukan di database."; }
+    else if (pend) { el.className = "saved warn"; el.textContent = "Ada " + pend + " perubahan belum terkirim (offline?). Akan dicoba lagi otomatis."; }
+    else if (sync.conn === "ok") { el.className = "saved ok"; el.textContent = "Bersama: tersambung. Perubahan dari orang lain muncul otomatis."; }
+    else { el.className = "saved"; el.textContent = "Bersama: menyambung..."; }
+  }
+
+  function enqueue(l, method, path, body) {
+    if (!l.shared) return;
+    var url = dbPath(l.shared, path), i;
+    if (method === "PUT") {
+      for (i = 0; i < sync.queue.length; i++) if (sync.queue[i].m === "PUT" && sync.queue[i].u === url) { sync.queue.splice(i, 1); break; }
+    }
+    sync.queue.push({ m: method, u: url, b: body });
+    saveQueue(); renderSync(); flush();
+  }
+  function flush() {
+    if (sync.sending || !sync.queue.length) { renderSync(); return; }
+    var op = sync.queue[0];
+    sync.sending = true;
+    var init = { method: op.m, headers: { "Content-Type": "application/json" } };
+    if (op.m !== "DELETE") init.body = JSON.stringify(op.b);
+    fetch(op.u, init).then(function (r) {
+      if (!r.ok) { var e = new Error("http"); e.status = r.status; throw e; }
+      sync.queue.shift(); sync.sending = false; saveQueue();
+      if (sync.conn === "denied") sync.conn = "ok";
+      flush();
+    }).catch(function (err) {
+      sync.sending = false;
+      if (err && (err.status === 401 || err.status === 403)) sync.conn = "denied";
+      renderSync();
+      clearTimeout(sync.timer); sync.timer = setTimeout(flush, 5000);
+    });
+  }
+
+  function subscribe(l) {
+    if (sync.es) { try { sync.es.close(); } catch (e) {} sync.es = null; }
+    sync.tree = undefined; sync.conn = "off";
+    if (!l.shared || !window.EventSource) { renderSync(); return; }
+    var es = new EventSource(dbPath(l.shared, ""));
+    sync.es = es; sync.conn = "connecting"; renderSync();
+    function handler(type) {
+      return function (ev) {
+        if (l !== cur) return;
+        var d; try { d = JSON.parse(ev.data); } catch (e) { return; }
+        sync.tree = applyEvent(sync.tree === undefined ? null : sync.tree, type, d);
+        sync.conn = "ok";
+        applyRemote(l);
+      };
+    }
+    es.addEventListener("put", handler("put"));
+    es.addEventListener("patch", handler("patch"));
+    es.addEventListener("open", function () { if (sync.conn !== "ok") setConn("connecting"); });
+    es.addEventListener("error", function () { if (sync.conn !== "denied") setConn("connecting"); });
+    es.addEventListener("cancel", function () { setConn("denied"); });
+    es.addEventListener("auth_revoked", function () { setConn("denied"); });
+  }
+
+  function focusInForm() {
+    var a = document.activeElement;
+    return a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA") && (a.dataset.f || a.dataset.meta);
+  }
+  function applyRemote(l) {
+    var t = sync.tree;
+    if (t === null || typeof t !== "object") {
+      if (l.shared && !l.alat.length && !l.bahan.length) { sync.conn = "notfound"; }
+      renderSync(); return;
+    }
+    var meta = t.meta && typeof t.meta === "object" ? t.meta : {};
+    META_KEYS.forEach(function (k) { if (!isRecent("meta:" + k)) l.meta[k] = str(meta[k]); });
+    l.alat = rowsFrom(t.alat, l.alat, "alat");
+    l.bahan = rowsFrom(t.bahan, l.bahan, "bahan");
+    persist(); renderPicker(); renderSync();
+    if (focusInForm()) { sync.pendingRender = true; renderSummary(); return; }
+    fillMeta(); renderAll();
+  }
+  document.addEventListener("focusout", function () {
+    if (!sync.pendingRender) return;
+    setTimeout(function () { if (sync.pendingRender && !focusInForm()) { sync.pendingRender = false; fillMeta(); renderAll(); } }, 700);
+  });
+
+  function teamLink() {
+    var enc = new TextEncoder().encode(cur.shared.db);
+    return location.origin + location.pathname + "#s=" + cur.shared.room + "~" + b64u(enc);
+  }
+
+  /* ---------- Bagikan lewat link ---------- */
+  function toCompact(l) {
+    function rows(a) { return a.map(function (r) { return [r.name, r.qty, r.s.join(""), r.note]; }); }
+    return { m: META_KEYS.map(function (k) { return l.meta[k] || ""; }), a: rows(l.alat), b: rows(l.bahan) };
+  }
+  function fromCompact(o) {
+    if (!o || !Array.isArray(o.m) || !Array.isArray(o.a) || !Array.isArray(o.b)) throw new Error("format");
+    var meta = {}; META_KEYS.forEach(function (k, i) { meta[k] = String(o.m[i] || ""); });
+    function rows(a) { return a.map(function (r, i) { var s = String(r[2] || "0000").split("").map(function (c) { c = +c; return c === 1 || c === 2 ? c : 0; }); while (s.length < 4) s.push(0); return { id: rnd(6), name: String(r[0] || ""), qty: String(r[1] || ""), s: s.slice(0, 4), note: String(r[3] || ""), o: (i + 1) * 1000 }; }); }
+    var l = newList(meta); l.alat = rows(o.a); l.bahan = rows(o.b); return l;
+  }
+  function b64u(bytes) { var s = "", i; for (i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192)); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+  function unb64u(t) { t = t.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "="; var s = atob(t), b = new Uint8Array(s.length), i; for (i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+  function pack(obj) {
+    var bytes = new TextEncoder().encode(JSON.stringify(obj));
+    if (!window.CompressionStream) return Promise.resolve("p" + b64u(bytes));
+    var cs = new CompressionStream("gzip"), w = cs.writable.getWriter();
+    w.write(bytes); w.close();
+    return new Response(cs.readable).arrayBuffer().then(function (buf) { return "g" + b64u(new Uint8Array(buf)); });
+  }
+  function unpack(t) {
+    var kind = t.charAt(0), bytes = unb64u(t.slice(1));
+    if (kind === "p") return Promise.resolve(JSON.parse(new TextDecoder().decode(bytes)));
+    if (kind === "g" && window.DecompressionStream) {
+      var ds = new DecompressionStream("gzip"), w = ds.writable.getWriter();
+      w.write(bytes); w.close();
+      return new Response(ds.readable).arrayBuffer().then(function (buf) { return JSON.parse(new TextDecoder().decode(buf)); });
+    }
+    return Promise.reject(new Error("format"));
+  }
+  function shareUrl(url, title) {
+    function fallback() {
+      $("shareText").value = url; $("shareBox").hidden = false; $("shareText").focus(); $("shareText").select();
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { setStatus("Link disalin."); }, function () {});
+    }
+    if (navigator.share) navigator.share({ title: title, url: url }).catch(function (err) { if (!err || err.name !== "AbortError") fallback(); });
+    else fallback();
+  }
+
+  var pendingJoin = null, pendingShared = null;
+  function checkIncoming() {
+    var h = location.hash || "", m;
+    if ((m = /^#d=(.+)$/.exec(h))) {
+      unpack(m[1]).then(function (o) {
+        pendingShared = fromCompact(o); pendingJoin = null;
+        $("bannerText").textContent = "Link ini berisi hasil checklist \"" + label(pendingShared) + "\". Muat sebagai checklist baru? Checklist Anda yang sekarang tidak diubah.";
+        $("btnLoadShared").textContent = "Muat sebagai checklist baru";
+        $("banner").hidden = false;
+      }).catch(function () { setStatus("Link hasil tidak bisa dibaca. Minta pengirim membagikan ulang.", true); });
+    } else if ((m = /^#s=([a-z0-9]+)~([A-Za-z0-9_-]+)$/.exec(h))) {
+      try {
+        var db = normalizeDb(new TextDecoder().decode(unb64u(m[2])));
+        if (!db) throw new Error("db");
+        pendingJoin = { db: db, room: m[1] }; pendingShared = null;
+        $("bannerText").textContent = "Link ini mengajak Anda bergabung ke checklist bersama. Semua perubahan Anda akan terlihat oleh orang lain yang memakai link yang sama. Bergabung?";
+        $("btnLoadShared").textContent = "Bergabung";
+        $("banner").hidden = false;
+      } catch (e) { setStatus("Link tim tidak valid. Minta pengirim membagikan ulang.", true); }
+    }
+  }
+  function clearHash() { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
+
+  function switchTo(id) {
+    store.current = id; cur = store.lists[id];
+    save(); renderPicker(); fillMeta(); renderAll(); $("shareBox").hidden = true; setStatus("");
+    subscribe(cur);
+  }
+
+  /* ---------- Simpan ---------- */
+  function hhmm() { var d = new Date(); return pad2(d.getHours()) + ":" + pad2(d.getMinutes()); }
+  function doSave(b) {
+    save();
+    var label0 = b.textContent;
+    function flash() { b.textContent = "Tersimpan ✓"; setTimeout(function () { b.textContent = label0; }, 1800); }
+    if (!cur.shared) {
+      if (!storageOK) { setStatus("Gagal menyimpan: browser ini tidak mengizinkan penyimpanan. Gunakan Bagikan link hasil.", true); return; }
+      flash();
+      setStatus("✓ Tersimpan pukul " + hhmm() + " di perangkat ini. Buka link yang sama di browser ini untuk melanjutkan (misalnya di lokasi). Untuk pindah HP, pakai Bagikan link hasil atau checklist bersama.");
+      return;
+    }
+    b.disabled = true; setStatus("Mengirim ke database bersama...");
+    flush();
+    var t0 = Date.now();
+    (function wait() {
+      if (!sync.queue.length) { b.disabled = false; flash(); setStatus("✓ Tersimpan pukul " + hhmm() + " di database bersama dan di perangkat ini."); return; }
+      if (sync.conn === "denied") { b.disabled = false; setStatus("Ditolak oleh database. Tersimpan di perangkat ini. Periksa Rules di Firebase.", true); return; }
+      if (Date.now() - t0 > 8000) { b.disabled = false; setStatus("Belum terkirim ke database (offline?). Tersimpan di perangkat ini dan akan dikirim otomatis saat tersambung.", true); return; }
+      setTimeout(wait, 300);
+    })();
+  }
+
+  /* ---------- Aksi ---------- */
+  var armedBtn = null, armedTimer = null;
+  function disarm() { if (armedBtn) { armedBtn.classList.remove("armed"); armedBtn.textContent = armedBtn.dataset.orig; armedBtn = null; } clearTimeout(armedTimer); }
+  function arm(b, text) {
+    disarm(); armedBtn = b; b.dataset.orig = b.textContent; b.classList.add("armed"); b.textContent = text;
+    armedTimer = setTimeout(disarm, 3200);
+  }
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("button") : null;
+    if (!b) return;
+    var p, r;
+    if (b.dataset.t) {
+      p = b.dataset.t.split(":");
+      r = cur[p[0]][+p[1]]; r.s[+p[2]] = (r.s[+p[2]] + 1) % 3;
+      markRecent(p[0] + ":" + r.id + ":s" + p[2], 2500);
+      enqueue(cur, "PUT", p[0] + "/" + r.id + "/s" + p[2], r.s[+p[2]]);
+      save(); renderAll();
+    } else if (b.dataset.all) {
+      p = b.dataset.all.split(":");
+      var upd = {};
+      cur[p[0]].forEach(function (r2) {
+        if (r2.s[+p[1]] === 0) { r2.s[+p[1]] = 1; upd[p[0] + "/" + r2.id + "/s" + p[1]] = 1; markRecent(p[0] + ":" + r2.id + ":s" + p[1], 2500); }
+      });
+      if (Object.keys(upd).length) enqueue(cur, "PATCH", "", upd);
+      save(); renderAll();
+    } else if (b.dataset.add) {
+      var list = cur[b.dataset.add], last = list.length ? list[list.length - 1].o : 0;
+      var nr = mkRow("", last + 1000); list.push(nr);
+      enqueue(cur, "PUT", b.dataset.add + "/" + nr.id, remoteRow(nr));
+      save(); renderAll();
+      var ni = $(b.dataset.add + "-n-" + (list.length - 1)); if (ni) ni.focus();
+    } else if (b.dataset.del) {
+      if (armedBtn === b) {
+        disarm(); p = b.dataset.del.split(":");
+        var gone = cur[p[0]].splice(+p[1], 1)[0];
+        if (gone) enqueue(cur, "DELETE", p[0] + "/" + gone.id);
+        save(); renderAll();
+      } else arm(b, "Hapus?");
+    } else if (b.id === "btnSave") {
+      doSave(b);
+    } else if (b.id === "btnNew") {
+      var n = newList(); store.lists[n.id] = n; switchTo(n.id); $("m_proyek").focus();
+    } else if (b.id === "btnDelList") {
+      if (armedBtn === b) {
+        disarm(); delete store.lists[store.current];
+        var ids = Object.keys(store.lists), nid;
+        if (ids.length) nid = ids[0]; else { var f = newList(); store.lists[f.id] = f; nid = f.id; }
+        switchTo(nid);
+      } else arm(b, "Ketuk lagi untuk menghapus");
+    } else if (b.id === "btnShare") {
+      pack(toCompact(cur)).then(function (code) {
+        shareUrl(location.origin + location.pathname + "#d=" + code, "Checklist " + label(cur));
+      }).catch(function () { setStatus("Link hasil gagal dibuat di browser ini.", true); });
+    } else if (b.id === "btnMakeShared") {
+      var db = normalizeDb($("dbUrl").value);
+      if (!db) { setStatus("Alamat database harus diawali https:// (contoh: https://nama-default-rtdb.asia-southeast1.firebasedatabase.app).", true); return; }
+      try { localStorage.setItem(DBKEY, db); } catch (er) {}
+      var sh = { db: db, room: rnd(14) };
+      ensureRows(cur);
+      b.disabled = true; setStatus("Membuat checklist bersama...");
+      fetch(dbPath(sh, ""), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(toTree(cur)) }).then(function (res) {
+        if (!res.ok) { var er2 = new Error("http"); er2.status = res.status; throw er2; }
+        cur.shared = sh; save(); renderPicker(); subscribe(cur); setStatus("Checklist bersama aktif. Tekan Salin link tim lalu kirim ke teknisi.");
+      }).catch(function (er3) {
+        setStatus(er3 && (er3.status === 401 || er3.status === 403) ? "Ditolak oleh database. Pastikan Rules sudah diganti dan di-Publish (lihat Cara menyiapkan)." : "Gagal tersambung ke database. Periksa alamatnya dan koneksi internet.", true);
+      }).then(function () { b.disabled = false; });
+    } else if (b.id === "btnTeamLink") {
+      shareUrl(teamLink(), "Checklist bersama " + label(cur));
+    } else if (b.id === "btnUnlink") {
+      if (armedBtn === b) {
+        disarm(); cur.shared = null; sync.queue = []; saveQueue(); save(); subscribe(cur); renderPicker(); setStatus("Checklist ini tidak lagi bersama. Salinannya tetap ada di perangkat ini.");
+      } else arm(b, "Ketuk lagi untuk melepas");
+    } else if (b.id === "btnLoadShared") {
+      if (pendingShared) {
+        store.lists[pendingShared.id] = pendingShared; var id = pendingShared.id; pendingShared = null;
+        $("banner").hidden = true; clearHash(); switchTo(id);
+      } else if (pendingJoin) {
+        var pj = pendingJoin, found = null; pendingJoin = null;
+        Object.keys(store.lists).forEach(function (k) { var s2 = store.lists[k].shared; if (s2 && s2.room === pj.room && s2.db === pj.db) found = k; });
+        $("banner").hidden = true; clearHash();
+        if (found) { switchTo(found); return; }
+        var nl = newList(); nl.alat = []; nl.bahan = []; nl.shared = pj;
+        store.lists[nl.id] = nl; switchTo(nl.id);
+        setStatus("Bergabung ke checklist bersama...");
+      }
+    } else if (b.id === "btnIgnoreShared") {
+      pendingShared = null; pendingJoin = null; $("banner").hidden = true; clearHash();
+    }
+  });
+
+  document.addEventListener("input", function (e) {
+    var t = e.target, p;
+    if (t.dataset && t.dataset.f) {
+      p = t.dataset.f.split(":");
+      var r = cur[p[0]][+p[1]]; r[p[2]] = t.value;
+      var fk = { name: "n", qty: "q", note: "c" }[p[2]];
+      markRecent(p[0] + ":" + r.id + ":" + p[2], 4000);
+      enqueue(cur, "PUT", p[0] + "/" + r.id + "/" + fk, t.value);
+      save();
+      if (t.tagName === "TEXTAREA") autosize(t);
+      renderSummary();
+    } else if (t.dataset && t.dataset.meta) {
+      cur.meta[t.dataset.meta] = t.value;
+      markRecent("meta:" + t.dataset.meta, 4000);
+      enqueue(cur, "PUT", "meta/" + t.dataset.meta, t.value);
+      save(); renderPicker();
+    }
+  });
+  $("picker").addEventListener("change", function () { switchTo(this.value); });
+  window.addEventListener("resize", function () { document.querySelectorAll("textarea[data-f]").forEach(autosize); });
+  window.addEventListener("beforeprint", function () { document.querySelectorAll("textarea[data-f]").forEach(autosize); });
+  window.addEventListener("online", flush);
+
+  /* ---------- PDF ---------- */
+  function buildPdf() {
+    var JS = window.jspdf && window.jspdf.jsPDF;
+    if (!JS) throw new Error("lib");
+    var doc = new JS({ unit: "mm", format: "a4" });
+    if (!doc.autoTable) throw new Error("lib");
+    var W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 14;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(20);
+    doc.text("FORM CHECKLIST ALAT DAN BAHAN", W / 2, 16, { align: "center" });
+    doc.setFontSize(11); doc.text("PLTS ENERCENTRIK", W / 2, 22, { align: "center" });
+    var meta = [["Proyek", cur.meta.proyek], ["Lokasi", cur.meta.lokasi], ["Tanggal", cur.meta.tanggal], ["Teknisi", cur.meta.teknisi], ["Dicek oleh", cur.meta.cek]];
+    var y = 31; doc.setFontSize(10);
+    meta.forEach(function (m) {
+      doc.setFont("helvetica", "bold"); doc.text(m[0], M, y);
+      doc.setFont("helvetica", "normal"); doc.text(": " + (m[1] || "__________"), M + 26, y); y += 5.6;
+    });
+    y += 3;
+    ["alat", "bahan"].forEach(function (sec) {
+      if (y > H - 70) { doc.addPage(); y = 16; }
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(20);
+      doc.text("List " + SEC_TITLE[sec], M, y); y += 4.5; doc.setFontSize(7.5);
+      STAGE_DESC[sec].forEach(function (d) {
+        doc.setFont("helvetica", "bold"); doc.text(d[0] + ":", M, y);
+        var w = doc.getTextWidth(d[0] + ": ");
+        doc.setFont("helvetica", "normal");
+        var lines = doc.splitTextToSize(d[1], W - 2 * M - w);
+        doc.text(lines, M + w, y); y += 3.4 * lines.length;
+      });
+      y += 1.5;
+      var body = cur[sec].map(function (r, i) {
+        var m = missing(r);
+        var note = (m.length ? "Tidak ada saat: " + m.join(", ") : "") + (m.length && r.note.trim() ? "\n" : "") + r.note.trim();
+        return [String(i + 1), r.name, r.qty].concat(r.s.map(function (v) { return v === 1 ? "V" : v === 2 ? "X" : ""; })).concat([note]);
+      });
+      doc.autoTable({
+        startY: y, margin: { left: M, right: M, bottom: 14 },
+        head: [[{ content: "No", rowSpan: 2 }, { content: SEC_TITLE[sec], rowSpan: 2 }, { content: "Qty", rowSpan: 2 }, { content: "Pengecekan", colSpan: 4 }, { content: "Catatan", rowSpan: 2 }], STAGES],
+        body: body, theme: "grid",
+        styles: { font: "helvetica", fontSize: 8.5, cellPadding: 1.5, lineColor: [150, 160, 170], lineWidth: 0.2, textColor: [25, 30, 40], valign: "middle" },
+        headStyles: { fillColor: [230, 234, 238], textColor: [20, 25, 35], halign: "center", fontStyle: "bold" },
+        columnStyles: { 0: { cellWidth: 9, halign: "center" }, 2: { cellWidth: 13, halign: "center" }, 3: { cellWidth: 15 }, 4: { cellWidth: 15 }, 5: { cellWidth: 15 }, 6: { cellWidth: 15 }, 7: { cellWidth: 46, fontSize: 7.5 } },
+        didParseCell: function (d) {
+          if (d.section !== "body") return;
+          var r = cur[sec][d.row.index];
+          if (d.column.index >= 3 && d.column.index <= 6) {
+            d.cell.styles.halign = "center"; d.cell.styles.fontStyle = "bold";
+            if (d.cell.raw === "V") d.cell.styles.textColor = [23, 121, 74];
+            if (d.cell.raw === "X") { d.cell.styles.textColor = [179, 38, 30]; d.cell.styles.fillColor = [251, 227, 225]; }
+          }
+          if (d.column.index === 1 && r && missing(r).length) { d.cell.styles.textColor = [179, 38, 30]; d.cell.styles.fontStyle = "bold"; }
+        }
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    });
+    var sum = [];
+    ["alat", "bahan"].forEach(function (sec) {
+      cur[sec].forEach(function (r) {
+        var m = missing(r);
+        if (m.length && r.name.trim()) sum.push("- " + r.name + " (" + SEC_TITLE[sec] + (r.qty ? ", qty " + r.qty : "") + ") tidak ada saat " + m.join(", ") + (r.note.trim() ? ". Catatan: " + r.note.trim() : ""));
+      });
+    });
+    var sumLines = [];
+    doc.setFontSize(9);
+    (sum.length ? sum : ["Tidak ada barang yang ditandai tidak ada."]).forEach(function (s) { sumLines = sumLines.concat(doc.splitTextToSize(s, W - 2 * M)); });
+    if (y + 8 + sumLines.length * 4.2 > H - 20) { doc.addPage(); y = 16; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.text("Ringkasan Barang Tidak Lengkap", M, y); y += 5;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    sumLines.forEach(function (ln) { if (y > H - 16) { doc.addPage(); y = 16; } doc.text(ln, M, y); y += 4.2; });
+    y += 8;
+    if (y + 32 > H - 10) { doc.addPage(); y = 20; }
+    doc.setFontSize(9.5);
+    var cw = (W - 2 * M) / 2;
+    ["Teknisi", "Dicek oleh"].forEach(function (lbl, i) {
+      var cx = M + cw * i + cw / 2;
+      doc.line(cx - 28, y + 22, cx + 28, y + 22); doc.text(lbl, cx, y + 27, { align: "center" });
+    });
+    return doc.output("blob");
+  }
+  function saveBlob(blob, name) {
+    var u = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = u; a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(u); a.remove(); }, 5000);
+  }
+  $("btnPdf").addEventListener("click", function () {
+    setStatus("");
+    var blob;
+    try { blob = buildPdf(); }
+    catch (err) { setStatus("Pembuat PDF belum termuat (butuh internet). Memakai dialog cetak browser: pilih Simpan sebagai PDF."); setTimeout(function () { window.print(); }, 300); return; }
+    var nm = ("Checklist Alat dan Bahan" + (cur.meta.proyek ? " - " + cur.meta.proyek : "") + (cur.meta.tanggal ? " - " + cur.meta.tanggal : "") + ".pdf").replace(/[\\\/:*?"<>|]/g, "-");
+    saveBlob(blob, nm);
+    setStatus("PDF dibuat. Cek folder Unduhan atau notifikasi unduhan di browser.");
+  });
+
+  /* ---------- Mulai ---------- */
+  loadStore();
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  try { $("dbUrl").value = localStorage.getItem(DBKEY) || ""; } catch (e) {}
+  save(); renderPicker(); fillMeta(); renderAll();
+  subscribe(cur);
+  flush();
+  checkIncoming();
+})();
+</script>
+</body>
+</html>
