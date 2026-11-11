@@ -67,6 +67,13 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
 
   function eff(id){var o={},b=items[id]||{},p=pending[id]||{},k;for(k in b)o[k]=b[k];for(k in p)o[k]=p[k];return o}
 
+  // Sisa kantor otomatis = stok awal - dibawa onsite + sisa onsite
+  function kantorOf(d){return num(d.awal)-num(d.onsite)+num(d.sisaOnsite)}
+  function updateRow(tr){
+    var d=eff(tr.dataset.id),k=kantorOf(d),sp=tr.querySelector(".sisakantor");
+    sp.textContent=k;sp.className="sisakantor sisa "+(k<0?"neg":k===0?"zero":"");
+    tr.querySelector(".warnline").textContent=num(d.sisaOnsite)>num(d.onsite)?"Sisa onsite melebihi yang dibawa":(k<0?"Sisa kantor minus — cek stok awal":"");
+  }
   function pendingCount(){var n=0;Object.keys(pending).forEach(function(k){n+=Object.keys(pending[k]).length});return n}
   var saveTimer=null,saving=false,pinDeclined=false;
   function scheduleSave(){clearTimeout(saveTimer);setStatus("menyimpan…");saveTimer=setTimeout(saveAll,600)}
@@ -86,12 +93,12 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
       .sort(function(a,b){return num(a.d.no)-num(b.d.no)});
     var h='<div class="card"><table><thead><tr><th>#</th><th>Material</th><th class="num">Stok awal</th><th class="num">Dibawa onsite</th><th class="num">Sisa onsite</th><th class="num">Sisa kantor</th><th class="note">Catatan</th></tr></thead><tbody>';
     list.forEach(function(x){
-      var d=eff(x.id);
-      h+='<tr data-id="'+esc(x.id)+'"><td>'+esc(d.no)+'</td><td class="name">'+esc(d.name)+'</td>'
+      var d=eff(x.id),k=kantorOf(d);
+      h+='<tr data-id="'+esc(x.id)+'"><td>'+esc(d.no)+'</td><td class="name">'+esc(d.name)+'<div class="warn warnline">'+(num(d.sisaOnsite)>num(d.onsite)?'Sisa onsite melebihi yang dibawa':(k<0?'Sisa kantor minus — cek stok awal':''))+'</div></td>'
       +'<td class="num"><input type="number" min="0" data-f="awal" value="'+num(d.awal)+'"></td>'
       +'<td class="num"><span class="step"><button data-act="dec">−</button><input type="number" min="0" data-f="onsite" value="'+num(d.onsite)+'"><button data-act="inc">+</button></span></td>'
-      +'<td class="num"><input type="number" min="0" class="sisa" data-f="sisaOnsite" value="'+num(d.sisaOnsite)+'"></td>'
-      +'<td class="num"><input type="number" min="0" class="sisa" data-f="sisaKantor" value="'+num(d.sisaKantor)+'"></td>'
+      +'<td class="num"><input type="number" min="0" data-f="sisaOnsite" value="'+num(d.sisaOnsite)+'"></td>'
+      +'<td class="num"><span class="sisakantor sisa '+(k<0?'neg':k===0?'zero':'')+'">'+k+'</span></td>'
       +'<td class="note"><input type="text" data-f="note" value="'+esc(d.note||"")+'" placeholder="mis. proyek X"></td></tr>';
     });
     h+='</tbody></table></div>';
@@ -177,7 +184,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
     var tr=i.closest("tr"),id=tr.dataset.id,f=i.dataset.f;
     var v=f==="note"?i.value:Math.max(0,num(i.value));
     if(f!=="note")i.value=v;
-    stage(id,f,v);
+    stage(id,f,v);updateRow(tr);
   });
 
   main.addEventListener("click",function(e){
@@ -201,7 +208,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
     var tr=b.closest("tr"),id=tr.dataset.id,cur=num(eff(id).onsite);
     var v=Math.max(0,cur+(b.dataset.act==="inc"?1:-1));
     tr.querySelector('input[data-f="onsite"]').value=v;
-    stage(id,"onsite",v);
+    stage(id,"onsite",v);updateRow(tr);
   });
 
   // segarkan otomatis saat tab dibuka kembali
