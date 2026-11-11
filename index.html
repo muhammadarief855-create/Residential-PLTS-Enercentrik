@@ -51,6 +51,11 @@
 
 <div id="main"></div>
 
+<div class="card" style="padding:12px 14px">
+  <button class="btn" id="btnNewProject">Project baru</button>
+  <div class="sub" style="margin:8px 0 0">Dipakai saat project selesai: <b>Stok awal</b> diisi dengan <b>Sisa kantor</b> saat ini, Dibawa onsite dan Catatan dikosongkan. Kondisi project sebelumnya diarsipkan di sheet "Riwayat".</div>
+</div>
+
 <script>
 // ====== ISI DENGAN URL WEB APP DARI APPS SCRIPT (berakhiran /exec) ======
 var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHKkmeszGv_MdoKW1SxaYi0SpCZC8QLSRiazOxGm6POAntw/exec";
@@ -173,7 +178,23 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
       .then(function(){saving=false;if(pendingCount()&&!document.querySelector(".status.err"))scheduleSave()});
   }
 
+  function newProject(){
+    if(!loaded){return}
+    if(pendingCount()||saving){window.alert("Masih ada perubahan yang belum tersimpan. Tunggu sampai status \"tersimpan\", lalu coba lagi.");return}
+    var label=window.prompt("Nama project yang baru selesai (untuk arsip di sheet Riwayat):","");
+    if(label===null)return;
+    if(!window.confirm("Mulai project baru?\n\nStok awal semua material akan diganti dengan Sisa kantor saat ini. Dibawa onsite dan Catatan dikosongkan. Data project sebelumnya diarsipkan di sheet Riwayat."))return;
+    var pin=getPin(false);if(pin===null)return;
+    var btn=$("#btnNewProject");btn.disabled=true;btn.textContent="Memproses…";
+    post({action:"newproject",pin:pin,label:label}).then(function(j){
+      if(!j.ok){if(j.error==="PIN"){try{localStorage.removeItem("stokPin")}catch(e){}}throw new Error(j.error)}
+      setStatus("project baru dimulai","live");load(true);
+    }).catch(function(){setStatus("gagal memulai project baru (cek PIN / deploy Code.gs terbaru)","err")})
+      .then(function(){btn.disabled=false;btn.textContent="Project baru"});
+  }
+
   // ---------- event ----------
+  $("#btnNewProject").addEventListener("click",newProject);
   $("#btnRefresh").addEventListener("click",function(){load()});
   document.querySelector(".tabs").addEventListener("click",function(e){
     var b=e.target.closest("button");if(!b)return;tab=b.dataset.t;adding=false;render();
