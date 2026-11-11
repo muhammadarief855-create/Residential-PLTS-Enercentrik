@@ -74,9 +74,11 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
   function eff(id){var o={},b=items[id]||{},p=pending[id]||{},k;for(k in b)o[k]=b[k];for(k in p)o[k]=p[k];return o}
 
   function updateRow(tr){
-    var d=eff(tr.dataset.id),sisa=num(d.awal)-num(d.onsite),sp=tr.querySelector(".sisa");
+    var d=eff(tr.dataset.id),sisa=num(d.awal)-num(d.onsite),so=num(d.onsite)-num(d.terpakai);
+    var sp=tr.querySelector(".sisa"),sx=tr.querySelector(".sisaon");
     sp.textContent=sisa;sp.className="sisa "+(sisa<0?"neg":sisa===0?"zero":"");
-    tr.querySelector(".warnline").textContent=sisa<0?"Onsite melebihi stok awal":"";
+    sx.textContent=so;sx.className="sisaon sisa "+(so<0?"neg":so===0?"zero":"");
+    tr.querySelector(".warnline").textContent=sisa<0?"Onsite melebihi stok awal":(so<0?"Terpakai melebihi yang dibawa onsite":"");
   }
   function pendingCount(){var n=0;Object.keys(pending).forEach(function(k){n+=Object.keys(pending[k]).length});return n}
   function updateBar(){var n=pendingCount();$("#bar").hidden=n===0;$("#barTxt").textContent=n+" perubahan belum disimpan"}
@@ -94,12 +96,14 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
     var list=Object.keys(items).map(function(k){return {id:k,d:items[k]}})
       .filter(function(x){return x.d.group===tab})
       .sort(function(a,b){return num(a.d.no)-num(b.d.no)});
-    var h='<div class="card"><table><thead><tr><th>#</th><th>Material</th><th class="num">Stok awal</th><th class="num">Dibawa onsite</th><th class="num">Sisa kantor</th><th class="note">Catatan</th></tr></thead><tbody>';
+    var h='<div class="card"><table><thead><tr><th>#</th><th>Material</th><th class="num">Stok awal</th><th class="num">Dibawa onsite</th><th class="num">Terpakai onsite</th><th class="num">Sisa onsite</th><th class="num">Sisa kantor</th><th class="note">Catatan</th></tr></thead><tbody>';
     list.forEach(function(x){
-      var d=eff(x.id),sisa=num(d.awal)-num(d.onsite);
-      h+='<tr data-id="'+esc(x.id)+'"><td>'+esc(d.no)+'</td><td class="name">'+esc(d.name)+'<div class="warn warnline">'+(sisa<0?'Onsite melebihi stok awal':'')+'</div></td>'
+      var d=eff(x.id),sisa=num(d.awal)-num(d.onsite),so=num(d.onsite)-num(d.terpakai);
+      h+='<tr data-id="'+esc(x.id)+'"><td>'+esc(d.no)+'</td><td class="name">'+esc(d.name)+'<div class="warn warnline">'+(sisa<0?'Onsite melebihi stok awal':(so<0?'Terpakai melebihi yang dibawa onsite':''))+'</div></td>'
       +'<td class="num"><input type="number" min="0" data-f="awal" value="'+num(d.awal)+'"></td>'
       +'<td class="num"><span class="step"><button data-act="dec">−</button><input type="number" min="0" data-f="onsite" value="'+num(d.onsite)+'"><button data-act="inc">+</button></span></td>'
+      +'<td class="num"><input type="number" min="0" data-f="terpakai" value="'+num(d.terpakai)+'"></td>'
+      +'<td class="num"><span class="sisaon sisa '+(so<0?'neg':so===0?'zero':'')+'">'+so+'</span></td>'
       +'<td class="num"><span class="sisa '+(sisa<0?'neg':sisa===0?'zero':'')+'">'+sisa+'</span></td>'
       +'<td class="note"><input type="text" data-f="note" value="'+esc(d.note||"")+'" placeholder="mis. proyek X"></td></tr>';
     });
