@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stok Opname BHP</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#1c2430;--mute:#6b7685;--line:#e3e7ed;--ok:#1a7f4b;--warn:#b45309;--bad:#c0262d;--acc:#1f5fbf}
+  @media (prefers-color-scheme:dark){:root{--bg:#14181e;--card:#1c222b;--ink:#e8ecf2;--mute:#97a2b2;--line:#2b3340;--ok:#4cc38a;--warn:#f0a548;--bad:#ff7a80;--acc:#6ea8ff}}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);padding:16px 16px 84px;max-width:980px;margin-inline:auto}
+  h1{font-size:20px;margin:0 0 2px}
+  .sub{color:var(--mute);font-size:13px;margin-bottom:14px}
+  .status{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mute)}
+  .status.live{color:var(--ok);border-color:var(--ok)}
+  .status.err{color:var(--bad);border-color:var(--bad)}
+  .tabs{display:flex;gap:6px;margin:14px 0}
+  .tabs button{flex:1;padding:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;font:inherit;cursor:pointer}
+  .tabs button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{font-size:12px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+  tr:last-child td{border-bottom:0}
+  td.num,th.num{text-align:center}
+  input[type=number]{width:64px;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;text-align:center}
+  input[type=text]{width:100%;min-width:90px;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+  .step{display:inline-flex;align-items:center;gap:4px}
+  .step button{width:28px;height:28px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;cursor:pointer;font-size:16px;line-height:1}
+  .sisa{font-weight:700;font-size:16px}
+  .sisa.zero,.sisa.neg{color:var(--bad)}
+  .name{font-weight:500}
+  .warn{color:var(--bad);font-size:12px}
+  .btn{padding:8px 14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;font:inherit;cursor:pointer}
+  .btn.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .btn.plus{width:100%;border-style:dashed;color:var(--acc);font-weight:600}
+  .btn:disabled{opacity:.6}
+  .addform{display:flex;gap:8px;padding:10px;flex-wrap:wrap;align-items:center}
+  .addform input[type=text]{flex:1;min-width:160px}
+  .empty{padding:24px;text-align:center;color:var(--mute)}
+  #bar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -4px 14px rgba(0,0,0,.12);z-index:10}
+  #bar[hidden]{display:none}
+  #barTxt{font-weight:600;color:var(--warn)}
+  @media (max-width:560px){th.note,td.note{display:none} input[type=number]{width:54px}}
+</style>
+</head>
+<body>
+<h1>Stok Opname BHP</h1>
+<div class="sub">Ubah angka lalu tekan Simpan; data tersimpan di Google Sheets dan selalu terbaru saat halaman dibuka. <span id="st" class="status">memuat…</span> <button class="btn" id="btnRefresh" style="padding:2px 10px;font-size:12px">Segarkan</button></div>
+
+<div class="tabs">
+  <button data-t="atas" class="on">BHP Atas</button>
+  <button data-t="bawah">BHP Bawah</button>
+</div>
+
+<div id="main"></div>
+
+<div id="bar" hidden><span id="barTxt"></span><span class="barbtns"><button class="btn" id="btnCancel">Batal</button> <button class="btn pri" id="btnSave">Simpan</button></span></div>
+
+<script>
+// ====== ISI DENGAN URL WEB APP DARI APPS SCRIPT (berakhiran /exec) ======
+var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHKkmeszGv_MdoKW1SxaYi0SpCZC8QLSRiazOxGm6POAntw/exec";
+// ========================================================================
+
+(function(){
+  var items = {}, pending = {}, adding = false, tab = "atas", loaded = false;
+  var $ = function(s){return document.querySelector(s)};
+  var main = $("#main");
+
+  function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+  function num(v){v=parseInt(v,10);return isNaN(v)?0:v}
+  function setStatus(t,cls){var s=$("#st");s.textContent=t;s.className="status"+(cls?" "+cls:"")}
+
+  function eff(id){var o={},b=items[id]||{},p=pending[id]||{},k;for(k in b)o[k]=b[k];for(k in p)o[k]=p[k];return o}
+
+  function updateRow(tr){
+    var d=eff(tr.dataset.id),sisa=num(d.awal)-num(d.onsite),sp=tr.querySelector(".sisa");
+    sp.textContent=sisa;sp.className="sisa "+(sisa<0?"neg":sisa===0?"zero":"");
+    tr.querySelector(".warnline").textContent=sisa<0?"Onsite melebihi stok awal":"";
+  }
+  function pendingCount(){var n=0;Object.keys(pending).forEach(function(k){n+=Object.keys(pending[k]).length});return n}
+  function updateBar(){var n=pendingCount();$("#bar").hidden=n===0;$("#barTxt").textContent=n+" perubahan belum disimpan"}
+
+  function stage(id,field,val){
+    var base=(items[id]||{})[field];
+    if(base===undefined)base=field==="note"?"":0;
+    var p=pending[id]||(pending[id]={});
+    if(val===base)delete p[field];else p[field]=val;
+    if(!Object.keys(p).length)delete pending[id];
+    updateBar();
+  }
+
+  function renderTable(){
+    var list=Object.keys(items).map(function(k){return {id:k,d:items[k]}})
+      .filter(function(x){return x.d.group===tab})
+      .sort(function(a,b){return num(a.d.no)-num(b.d.no)});
+    var h='<div class="card"><table><thead><tr><th>#</th><th>Material</th><th class="num">Stok awal</th><th class="num">Dibawa onsite</th><th class="num">Sisa kantor</th><th class="note">Catatan</th></tr></thead><tbody>';
+    list.forEach(function(x){
+      var d=eff(x.id),sisa=num(d.awal)-num(d.onsite);
+      h+='<tr data-id="'+esc(x.id)+'"><td>'+esc(d.no)+'</td><td class="name">'+esc(d.name)+'<div class="warn warnline">'+(sisa<0?'Onsite melebihi stok awal':'')+'</div></td>'
+      +'<td class="num"><input type="number" min="0" data-f="awal" value="'+num(d.awal)+'"></td>'
+      +'<td class="num"><span class="step"><button data-act="dec">−</button><input type="number" min="0" data-f="onsite" value="'+num(d.onsite)+'"><button data-act="inc">+</button></span></td>'
+      +'<td class="num"><span class="sisa '+(sisa<0?'neg':sisa===0?'zero':'')+'">'+sisa+'</span></td>'
+      +'<td class="note"><input type="text" data-f="note" value="'+esc(d.note||"")+'" placeholder="mis. proyek X"></td></tr>';
+    });
+    h+='</tbody></table></div>';
+    h+='<div id="addbox">'+(adding?
+      '<div class="card addform"><input type="text" id="nName" placeholder="Nama BHP baru" maxlength="80"> <input type="number" id="nAwal" min="0" value="0" title="Stok awal"> <button class="btn pri" data-add="ok">Tambah</button> <button class="btn" data-add="cancel">Batal</button></div>'
+      :'<button class="btn plus" data-add="open" title="Tambah BHP baru">+ Tambah BHP</button>')+'</div>';
+    main.innerHTML=h;
+    if(adding){var n=$("#nName");if(n)n.focus()}
+  }
+
+  function render(){
+    renderTable();
+    document.querySelectorAll(".tabs button").forEach(function(b){b.classList.toggle("on",b.dataset.t===tab)});
+  }
+
+  // ---------- komunikasi dengan Google Sheets ----------
+  function getPin(force){
+    var pin=null;try{pin=localStorage.getItem("stokPin")}catch(e){}
+    if(!pin||force){
+      pin=window.prompt(force?"PIN salah. Masukkan PIN lagi:":"Masukkan PIN untuk menyimpan perubahan:");
+      if(pin===null)return null;
+      try{localStorage.setItem("stokPin",pin)}catch(e){}
+    }
+    return pin;
+  }
+
+  function post(body){
+    return fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})
+      .then(function(r){return r.json()});
+  }
+
+  function load(silent){
+    if(!API_URL||API_URL.indexOf("PASTE_")===0){setStatus("API_URL belum diisi","err");return}
+    if(!silent)setStatus("memuat…");
+    fetch(API_URL+(API_URL.indexOf("?")>-1?"&":"?")+"t="+Date.now())
+      .then(function(r){return r.json()})
+      .then(function(j){
+        if(!j.ok)throw new Error(j.error||"gagal");
+        items={};j.items.forEach(function(it){items[it.id]=it});
+        loaded=true;setStatus("terbaru "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}),"live");
+        var a=document.activeElement;
+        if(a&&a.tagName==="INPUT"&&main.contains(a))return; // jangan ganggu pengetikan
+        render();
+      })
+      .catch(function(){setStatus("gagal memuat data","err")});
+  }
+
+  function saveAll(attempt){
+    if(!pendingCount())return;
+    var pin=getPin(attempt===true);if(pin===null)return;
+    var btn=$("#btnSave"),snap=JSON.parse(JSON.stringify(pending));
+    var changes=Object.keys(snap).map(function(id){var c=snap[id];c.id=id;return c});
+    btn.disabled=true;btn.textContent="Menyimpan…";
+    post({action:"save",pin:pin,changes:changes}).then(function(j){
+      if(!j.ok){
+        if(j.error==="PIN"){btn.disabled=false;btn.textContent="Simpan";return saveAll(true)}
+        throw new Error(j.error);
+      }
+      pending={};updateBar();load(true);
+    }).catch(function(){setStatus("gagal menyimpan","err")})
+      .then(function(){btn.disabled=false;btn.textContent="Simpan"});
+  }
+
+  // ---------- event ----------
+  $("#btnSave").addEventListener("click",function(){saveAll()});
+  $("#btnCancel").addEventListener("click",function(){pending={};updateBar();render()});
+  $("#btnRefresh").addEventListener("click",function(){load()});
+  document.querySelector(".tabs").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;tab=b.dataset.t;adding=false;render();
+  });
+
+  main.addEventListener("change",function(e){
+    var i=e.target;if(!i.dataset.f)return;
+    var tr=i.closest("tr"),id=tr.dataset.id,f=i.dataset.f;
+    var v=f==="note"?i.value:Math.max(0,num(i.value));
+    if(f!=="note")i.value=v;
+    stage(id,f,v);updateRow(tr);
+  });
+
+  main.addEventListener("click",function(e){
+    var a=e.target.closest("button[data-add]");
+    if(a){
+      var m=a.dataset.add;
+      if(m==="open"){adding=true;render();return}
+      if(m==="cancel"){adding=false;render();return}
+      var name=($("#nName").value||"").trim();
+      if(!name){$("#nName").focus();return}
+      var pin=getPin(false);if(pin===null)return;
+      var awal=Math.max(0,num($("#nAwal").value));
+      a.disabled=true;a.textContent="Menambah…";
+      post({action:"add",pin:pin,group:tab,name:name,awal:awal}).then(function(j){
+        if(!j.ok){if(j.error==="PIN"){try{localStorage.removeItem("stokPin")}catch(e){}}throw new Error(j.error)}
+        adding=false;load(true);
+      }).catch(function(){setStatus("gagal menambah (cek PIN)","err");a.disabled=false;a.textContent="Tambah"});
+      return;
+    }
+    var b=e.target.closest("button[data-act]");if(!b)return;
+    var tr=b.closest("tr"),id=tr.dataset.id,cur=num(eff(id).onsite);
+    var v=Math.max(0,cur+(b.dataset.act==="inc"?1:-1));
+    tr.querySelector('input[data-f="onsite"]').value=v;
+    stage(id,"onsite",v);updateRow(tr);
+  });
+
+  // segarkan otomatis saat tab dibuka kembali
+  document.addEventListener("visibilitychange",function(){if(!document.hidden&&!pendingCount())load(true)});
+
+  load();
+})();
+</script>
+</body>
+</html>
