@@ -27,8 +27,7 @@
   input[type=text]{width:100%;min-width:90px;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
   .step{display:inline-flex;align-items:center;gap:4px}
   .step button{width:28px;height:28px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;cursor:pointer;font-size:16px;line-height:1}
-  .sisa{font-weight:700;font-size:16px}
-  .sisa.zero,.sisa.neg{color:var(--bad)}
+  input.sisa{font-weight:700}
   .name{font-weight:500}
   .warn{color:var(--bad);font-size:12px}
   .btn{padding:8px 14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;font:inherit;cursor:pointer}
@@ -38,15 +37,12 @@
   .addform{display:flex;gap:8px;padding:10px;flex-wrap:wrap;align-items:center}
   .addform input[type=text]{flex:1;min-width:160px}
   .empty{padding:24px;text-align:center;color:var(--mute)}
-  #bar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -4px 14px rgba(0,0,0,.12);z-index:10}
-  #bar[hidden]{display:none}
-  #barTxt{font-weight:600;color:var(--warn)}
   @media (max-width:560px){th.note,td.note{display:none} input[type=number]{width:54px}}
 </style>
 </head>
 <body>
 <h1>Stok Opname BHP</h1>
-<div class="sub">Ubah angka lalu tekan Simpan; data tersimpan di Google Sheets dan selalu terbaru saat halaman dibuka. <span id="st" class="status">memuat…</span> <button class="btn" id="btnRefresh" style="padding:2px 10px;font-size:12px">Segarkan</button></div>
+<div class="sub">Setiap perubahan tersimpan otomatis ke Google Sheets dan selalu terbaru saat halaman dibuka. <span id="st" class="status">memuat…</span> <button class="btn" id="btnRefresh" style="padding:2px 10px;font-size:12px">Segarkan</button></div>
 
 <div class="tabs">
   <button data-t="atas" class="on">BHP Atas</button>
@@ -54,8 +50,6 @@
 </div>
 
 <div id="main"></div>
-
-<div id="bar" hidden><span id="barTxt"></span><span class="barbtns"><button class="btn" id="btnCancel">Batal</button> <button class="btn pri" id="btnSave">Simpan</button></span></div>
 
 <script>
 // ====== ISI DENGAN URL WEB APP DARI APPS SCRIPT (berakhiran /exec) ======
@@ -73,15 +67,9 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
 
   function eff(id){var o={},b=items[id]||{},p=pending[id]||{},k;for(k in b)o[k]=b[k];for(k in p)o[k]=p[k];return o}
 
-  function updateRow(tr){
-    var d=eff(tr.dataset.id),sisa=num(d.awal)-num(d.onsite),so=num(d.onsite)-num(d.terpakai);
-    var sp=tr.querySelector(".sisa"),sx=tr.querySelector(".sisaon");
-    sp.textContent=sisa;sp.className="sisa "+(sisa<0?"neg":sisa===0?"zero":"");
-    sx.textContent=so;sx.className="sisaon sisa "+(so<0?"neg":so===0?"zero":"");
-    tr.querySelector(".warnline").textContent=sisa<0?"Onsite melebihi stok awal":(so<0?"Terpakai melebihi yang dibawa onsite":"");
-  }
   function pendingCount(){var n=0;Object.keys(pending).forEach(function(k){n+=Object.keys(pending[k]).length});return n}
-  function updateBar(){var n=pendingCount();$("#bar").hidden=n===0;$("#barTxt").textContent=n+" perubahan belum disimpan"}
+  var saveTimer=null,saving=false,pinDeclined=false;
+  function scheduleSave(){clearTimeout(saveTimer);setStatus("menyimpan…");saveTimer=setTimeout(saveAll,600)}
 
   function stage(id,field,val){
     var base=(items[id]||{})[field];
@@ -89,22 +77,21 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
     var p=pending[id]||(pending[id]={});
     if(val===base)delete p[field];else p[field]=val;
     if(!Object.keys(p).length)delete pending[id];
-    updateBar();
+    if(pendingCount())scheduleSave();
   }
 
   function renderTable(){
     var list=Object.keys(items).map(function(k){return {id:k,d:items[k]}})
       .filter(function(x){return x.d.group===tab})
       .sort(function(a,b){return num(a.d.no)-num(b.d.no)});
-    var h='<div class="card"><table><thead><tr><th>#</th><th>Material</th><th class="num">Stok awal</th><th class="num">Dibawa onsite</th><th class="num">Terpakai onsite</th><th class="num">Sisa onsite</th><th class="num">Sisa kantor</th><th class="note">Catatan</th></tr></thead><tbody>';
+    var h='<div class="card"><table><thead><tr><th>#</th><th>Material</th><th class="num">Stok awal</th><th class="num">Dibawa onsite</th><th class="num">Sisa onsite</th><th class="num">Sisa kantor</th><th class="note">Catatan</th></tr></thead><tbody>';
     list.forEach(function(x){
-      var d=eff(x.id),sisa=num(d.awal)-num(d.onsite),so=num(d.onsite)-num(d.terpakai);
-      h+='<tr data-id="'+esc(x.id)+'"><td>'+esc(d.no)+'</td><td class="name">'+esc(d.name)+'<div class="warn warnline">'+(sisa<0?'Onsite melebihi stok awal':(so<0?'Terpakai melebihi yang dibawa onsite':''))+'</div></td>'
+      var d=eff(x.id);
+      h+='<tr data-id="'+esc(x.id)+'"><td>'+esc(d.no)+'</td><td class="name">'+esc(d.name)+'</td>'
       +'<td class="num"><input type="number" min="0" data-f="awal" value="'+num(d.awal)+'"></td>'
       +'<td class="num"><span class="step"><button data-act="dec">−</button><input type="number" min="0" data-f="onsite" value="'+num(d.onsite)+'"><button data-act="inc">+</button></span></td>'
-      +'<td class="num"><input type="number" min="0" data-f="terpakai" value="'+num(d.terpakai)+'"></td>'
-      +'<td class="num"><span class="sisaon sisa '+(so<0?'neg':so===0?'zero':'')+'">'+so+'</span></td>'
-      +'<td class="num"><span class="sisa '+(sisa<0?'neg':sisa===0?'zero':'')+'">'+sisa+'</span></td>'
+      +'<td class="num"><input type="number" min="0" class="sisa" data-f="sisaOnsite" value="'+num(d.sisaOnsite)+'"></td>'
+      +'<td class="num"><input type="number" min="0" class="sisa" data-f="sisaKantor" value="'+num(d.sisaKantor)+'"></td>'
       +'<td class="note"><input type="text" data-f="note" value="'+esc(d.note||"")+'" placeholder="mis. proyek X"></td></tr>';
     });
     h+='</tbody></table></div>';
@@ -144,7 +131,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
       .then(function(j){
         if(!j.ok)throw new Error(j.error||"gagal");
         items={};j.items.forEach(function(it){items[it.id]=it});
-        loaded=true;setStatus("terbaru "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}),"live");
+        loaded=true;if(!silent)setStatus("terbaru "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}),"live");
         var a=document.activeElement;
         if(a&&a.tagName==="INPUT"&&main.contains(a))return; // jangan ganggu pengetikan
         render();
@@ -152,25 +139,34 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
       .catch(function(){setStatus("gagal memuat data","err")});
   }
 
-  function saveAll(attempt){
-    if(!pendingCount())return;
-    var pin=getPin(attempt===true);if(pin===null)return;
-    var btn=$("#btnSave"),snap=JSON.parse(JSON.stringify(pending));
-    var changes=Object.keys(snap).map(function(id){var c=snap[id];c.id=id;return c});
-    btn.disabled=true;btn.textContent="Menyimpan…";
+  function saveAll(retryPin){
+    if(!pendingCount()){return}
+    if(saving){scheduleSave();return}
+    var pin=getPin(retryPin===true);
+    if(pin===null){setStatus("belum tersimpan (PIN dibatalkan)","err");return}
+    var snap=JSON.parse(JSON.stringify(pending));
+    var changes=Object.keys(snap).map(function(id){var c=JSON.parse(JSON.stringify(snap[id]));c.id=id;return c});
+    saving=true;
     post({action:"save",pin:pin,changes:changes}).then(function(j){
       if(!j.ok){
-        if(j.error==="PIN"){btn.disabled=false;btn.textContent="Simpan";return saveAll(true)}
+        if(j.error==="PIN"){saving=false;return saveAll(true)}
         throw new Error(j.error);
       }
-      pending={};updateBar();load(true);
-    }).catch(function(){setStatus("gagal menyimpan","err")})
-      .then(function(){btn.disabled=false;btn.textContent="Simpan"});
+      // catat sebagai tersimpan; perubahan yang masuk selama proses tetap menunggu
+      Object.keys(snap).forEach(function(id){
+        Object.keys(snap[id]).forEach(function(f){
+          if(!items[id])items[id]={id:id};
+          items[id][f]=snap[id][f];
+          if(pending[id]&&pending[id][f]===snap[id][f]){delete pending[id][f];if(!Object.keys(pending[id]).length)delete pending[id]}
+        });
+      });
+      setStatus("tersimpan "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}),"live");
+      if(!pendingCount())setTimeout(function(){if(!pendingCount()&&!saving)load(true)},300);
+    }).catch(function(){setStatus("gagal menyimpan — coba lagi","err")})
+      .then(function(){saving=false;if(pendingCount()&&!document.querySelector(".status.err"))scheduleSave()});
   }
 
   // ---------- event ----------
-  $("#btnSave").addEventListener("click",function(){saveAll()});
-  $("#btnCancel").addEventListener("click",function(){pending={};updateBar();render()});
   $("#btnRefresh").addEventListener("click",function(){load()});
   document.querySelector(".tabs").addEventListener("click",function(e){
     var b=e.target.closest("button");if(!b)return;tab=b.dataset.t;adding=false;render();
@@ -181,7 +177,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
     var tr=i.closest("tr"),id=tr.dataset.id,f=i.dataset.f;
     var v=f==="note"?i.value:Math.max(0,num(i.value));
     if(f!=="note")i.value=v;
-    stage(id,f,v);updateRow(tr);
+    stage(id,f,v);
   });
 
   main.addEventListener("click",function(e){
@@ -205,11 +201,11 @@ var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHK
     var tr=b.closest("tr"),id=tr.dataset.id,cur=num(eff(id).onsite);
     var v=Math.max(0,cur+(b.dataset.act==="inc"?1:-1));
     tr.querySelector('input[data-f="onsite"]').value=v;
-    stage(id,"onsite",v);updateRow(tr);
+    stage(id,"onsite",v);
   });
 
   // segarkan otomatis saat tab dibuka kembali
-  document.addEventListener("visibilitychange",function(){if(!document.hidden&&!pendingCount())load(true)});
+  document.addEventListener("visibilitychange",function(){if(!document.hidden&&!pendingCount()&&!saving)load(true)});
 
   load();
 })();
