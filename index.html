@@ -87,6 +87,17 @@ var API_URL = "https://script.google.com/macros/s/AKfycbydVkNRNeDAi7PJi-Ekx1cRAo
     sp.textContent=k;sp.className="sisakantor sisa "+(k<0?"neg":k===0?"zero":"");
     tr.querySelector(".warnline").textContent=num(d.sisaOnsite)>num(d.onsite)?"Sisa onsite melebihi yang dibawa":(k<0?"Sisa kantor minus — cek stok awal":"");
   }
+  // Ubah "dibawa onsite". Sisa onsite ikut berubah selama belum diubah manual (nilainya masih sama dengan dibawa onsite).
+  function setOnsite(tr,id,v){
+    var d=eff(id),prevO=num(d.onsite),prevS=num(d.sisaOnsite);
+    tr.querySelector('input[data-f="onsite"]').value=v;
+    stage(id,"onsite",v);
+    if(prevS===prevO){
+      tr.querySelector('input[data-f="sisaOnsite"]').value=v;
+      stage(id,"sisaOnsite",v);
+    }
+    updateRow(tr);
+  }
   function pendingCount(){var n=0;Object.keys(pending).forEach(function(k){n+=Object.keys(pending[k]).length});return n}
   var saveTimer=null,saving=false,pinDeclined=false;
   function scheduleSave(){clearTimeout(saveTimer);setStatus("menyimpan…");saveTimer=setTimeout(saveAll,600)}
@@ -254,6 +265,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycbydVkNRNeDAi7PJi-Ekx1cRAo
     var tr=i.closest("tr"),id=tr.dataset.id,f=i.dataset.f;
     var v=f==="note"?i.value:Math.max(0,num(i.value));
     if(f!=="note")i.value=v;
+    if(f==="onsite"){setOnsite(tr,id,v);return}
     stage(id,f,v);updateRow(tr);
   });
 
@@ -291,8 +303,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycbydVkNRNeDAi7PJi-Ekx1cRAo
     var b=e.target.closest("button[data-act]");if(!b)return;
     var tr=b.closest("tr"),id=tr.dataset.id,cur=num(eff(id).onsite);
     var v=Math.max(0,cur+(b.dataset.act==="inc"?1:-1));
-    tr.querySelector('input[data-f="onsite"]').value=v;
-    stage(id,"onsite",v);updateRow(tr);
+    setOnsite(tr,id,v);
   });
 
   // segarkan otomatis saat tab dibuka kembali
