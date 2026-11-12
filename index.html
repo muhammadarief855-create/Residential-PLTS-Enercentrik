@@ -36,6 +36,13 @@
   .btn:disabled{opacity:.6}
   .addform{display:flex;gap:8px;padding:10px;flex-wrap:wrap;align-items:center}
   .addform input[type=text]{flex:1;min-width:160px}
+  .mute{color:var(--mute);font-weight:400;font-size:13px}
+  details.proj summary{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;list-style:none}
+  details.proj summary::-webkit-details-marker{display:none}
+  details.proj[open] summary{border-bottom:1px solid var(--line)}
+  .btn.rm{padding:2px 8px;color:var(--bad);font-size:13px;line-height:1.4}
+  .btn.del{color:var(--bad);padding:5px 12px;font-size:13px}
+  td.grp{background:var(--bg);font-size:12px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.03em}
   .empty{padding:24px;text-align:center;color:var(--mute)}
   @media (max-width:560px){th.note,td.note{display:none} input[type=number]{width:54px}}
 </style>
@@ -47,13 +54,14 @@
 <div class="tabs">
   <button data-t="atas" class="on">BHP Atas</button>
   <button data-t="bawah">BHP Bawah</button>
+  <button data-t="riwayat">Project selesai</button>
 </div>
 
 <div id="main"></div>
 
-<div class="card" style="padding:12px 14px">
+<div class="card" id="projCard" style="padding:12px 14px">
   <button class="btn" id="btnNewProject">Project baru</button>
-  <div class="sub" style="margin:8px 0 0">Dipakai saat project selesai: <b>Stok awal</b> diisi dengan <b>Sisa kantor</b> saat ini, Dibawa onsite dan Catatan dikosongkan. Kondisi project sebelumnya diarsipkan di sheet "Riwayat".</div>
+  <div class="sub" style="margin:8px 0 0">Dipakai saat project selesai: <b>Stok awal</b> diisi dengan <b>Sisa kantor</b> saat ini, Dibawa onsite dan Catatan dikosongkan. Kondisi project sebelumnya diarsipkan dan bisa dilihat di tab "Project selesai".</div>
 </div>
 
 <script>
@@ -62,7 +70,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycbydVkNRNeDAi7PJi-Ekx1cRAo
 // ========================================================================
 
 (function(){
-  var items = {}, pending = {}, adding = false, tab = "atas", loaded = false;
+  var items = {}, hist = null, pending = {}, adding = false, tab = "atas", loaded = false;
   var $ = function(s){return document.querySelector(s)};
   var main = $("#main");
 
@@ -96,7 +104,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycbydVkNRNeDAi7PJi-Ekx1cRAo
     var list=Object.keys(items).map(function(k){return {id:k,d:items[k]}})
       .filter(function(x){return x.d.group===tab})
       .sort(function(a,b){return num(a.d.no)-num(b.d.no)});
-    var h='<div class="card"><table><thead><tr><th>#</th><th>Material</th><th class="num">Stok awal</th><th class="num">Dibawa onsite</th><th class="num">Sisa onsite</th><th class="num">Sisa kantor</th><th class="note">Catatan</th></tr></thead><tbody>';
+    var h='<div class="card"><table><thead><tr><th>#</th><th>Material</th><th class="num">Stok awal</th><th class="num">Dibawa onsite</th><th class="num">Sisa onsite</th><th class="num">Sisa kantor</th><th class="note">Catatan</th><th></th></tr></thead><tbody>';
     list.forEach(function(x){
       var d=eff(x.id),k=kantorOf(d);
       h+='<tr data-id="'+esc(x.id)+'"><td>'+esc(d.no)+'</td><td class="name">'+esc(d.name)+'<div class="warn warnline">'+(num(d.sisaOnsite)>num(d.onsite)?'Sisa onsite melebihi yang dibawa':(k<0?'Sisa kantor minus — cek stok awal':''))+'</div></td>'
@@ -104,7 +112,8 @@ var API_URL = "https://script.google.com/macros/s/AKfycbydVkNRNeDAi7PJi-Ekx1cRAo
       +'<td class="num"><span class="step"><button data-act="dec">−</button><input type="number" min="0" data-f="onsite" value="'+num(d.onsite)+'"><button data-act="inc">+</button></span></td>'
       +'<td class="num"><input type="number" min="0" data-f="sisaOnsite" value="'+num(d.sisaOnsite)+'"></td>'
       +'<td class="num"><span class="sisakantor sisa '+(k<0?'neg':k===0?'zero':'')+'">'+k+'</span></td>'
-      +'<td class="note"><input type="text" data-f="note" value="'+esc(d.note||"")+'" placeholder="mis. proyek X"></td></tr>';
+      +'<td class="note"><input type="text" data-f="note" value="'+esc(d.note||"")+'" placeholder="mis. proyek X"></td>'
+      +'<td class="num"><button class="btn rm" data-delrow="1" title="Hapus material ini" aria-label="Hapus '+esc(d.name)+'">✕</button></td></tr>';
     });
     h+='</tbody></table></div>';
     h+='<div id="addbox">'+(adding?
@@ -114,8 +123,48 @@ var API_URL = "https://script.google.com/macros/s/AKfycbydVkNRNeDAi7PJi-Ekx1cRAo
     if(adding){var n=$("#nName");if(n)n.focus()}
   }
 
+  function fmtDate(iso){try{return new Date(iso).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"})}catch(e){return ""}}
+
+  function renderHistory(){
+    if(hist===null){main.innerHTML='<div class="card"><div class="empty">Memuat arsip project…</div></div>';return}
+    if(!hist.length){main.innerHTML='<div class="card"><div class="empty">Belum ada project yang selesai. Arsip muncul di sini setelah Anda menekan "Project baru".</div></div>';return}
+    var h="";
+    hist.forEach(function(p){
+      var rows=p.rows.slice().sort(function(a,b){return a.group===b.group?a.no-b.no:(a.group==="atas"?-1:1)});
+      h+='<details class="card proj"><summary><span><b>'+esc(p.label)+'</b> <span class="mute">· selesai '+fmtDate(p.time)+' · '+rows.length+' material</span></span>'
+        +'<button class="btn del" data-del="'+esc(p.id)+'" data-label="'+esc(p.label)+'">Hapus</button></summary>'
+        +'<table><thead><tr><th>Material</th><th class="num">Stok awal</th><th class="num">Dibawa onsite</th><th class="num">Sisa onsite</th><th class="num">Sisa kantor</th><th class="note">Catatan</th></tr></thead><tbody>';
+      var last="";
+      rows.forEach(function(r){
+        if(r.group!==last){last=r.group;h+='<tr><td colspan="6" class="grp">'+(r.group==="atas"?"BHP Atas":"BHP Bawah")+'</td></tr>'}
+        h+='<tr><td class="name">'+esc(r.name)+'</td><td class="num">'+r.awal+'</td><td class="num">'+r.onsite+'</td><td class="num">'+r.sisaOnsite+'</td><td class="num"><b>'+r.sisaKantor+'</b></td><td class="note">'+esc(r.note)+'</td></tr>';
+      });
+      h+='</tbody></table></details>';
+    });
+    main.innerHTML=h;
+  }
+
+  function loadHistory(){
+    hist=null;if(tab==="riwayat")renderHistory();
+    fetch(API_URL+(API_URL.indexOf("?")>-1?"&":"?")+"view=riwayat&t="+Date.now())
+      .then(function(r){return r.json()})
+      .then(function(j){if(!j.ok)throw new Error(j.error||"gagal");hist=j.projects||[];if(tab==="riwayat")renderHistory()})
+      .catch(function(){hist=[];setStatus("gagal memuat arsip (deploy Code.gs terbaru?)","err");if(tab==="riwayat")renderHistory()});
+  }
+
+  function deleteProject(id,label){
+    if(!window.confirm('Hapus arsip "'+label+'" secara permanen? Data project ini tidak bisa dikembalikan.'))return;
+    var pin=getPin(false);if(pin===null)return;
+    post({action:"hapusproject",pin:pin,id:id}).then(function(j){
+      if(!j.ok){if(j.error==="PIN"){try{localStorage.removeItem("stokPin")}catch(e){}}throw new Error(j.error)}
+      setStatus("arsip dihapus","live");loadHistory();
+    }).catch(function(){setStatus("gagal menghapus (cek PIN)","err")});
+  }
+
   function render(){
-    renderTable();
+    var isH=tab==="riwayat";
+    $("#projCard").style.display=isH?"none":"";
+    if(isH)renderHistory();else renderTable();
     document.querySelectorAll(".tabs button").forEach(function(b){b.classList.toggle("on",b.dataset.t===tab)});
   }
 
@@ -181,23 +230,23 @@ var API_URL = "https://script.google.com/macros/s/AKfycbydVkNRNeDAi7PJi-Ekx1cRAo
   function newProject(){
     if(!loaded){return}
     if(pendingCount()||saving){window.alert("Masih ada perubahan yang belum tersimpan. Tunggu sampai status \"tersimpan\", lalu coba lagi.");return}
-    var label=window.prompt("Nama project yang baru selesai (untuk arsip di sheet Riwayat):","");
+    var label=window.prompt("Nama project yang baru selesai (kosongkan untuk otomatis: Project 1, Project 2, …):","");
     if(label===null)return;
-    if(!window.confirm("Mulai project baru?\n\nStok awal semua material akan diganti dengan Sisa kantor saat ini. Dibawa onsite dan Catatan dikosongkan. Data project sebelumnya diarsipkan di sheet Riwayat."))return;
+    if(!window.confirm("Mulai project baru?\n\nStok awal semua material akan diganti dengan Sisa kantor saat ini. Dibawa onsite dan Catatan dikosongkan. Data project sebelumnya diarsipkan di tab Project selesai."))return;
     var pin=getPin(false);if(pin===null)return;
     var btn=$("#btnNewProject");btn.disabled=true;btn.textContent="Memproses…";
     post({action:"newproject",pin:pin,label:label}).then(function(j){
       if(!j.ok){if(j.error==="PIN"){try{localStorage.removeItem("stokPin")}catch(e){}}throw new Error(j.error)}
-      setStatus("project baru dimulai","live");load(true);
+      setStatus("project baru dimulai","live");hist=null;load(true);
     }).catch(function(){setStatus("gagal memulai project baru (cek PIN / deploy Code.gs terbaru)","err")})
       .then(function(){btn.disabled=false;btn.textContent="Project baru"});
   }
 
   // ---------- event ----------
   $("#btnNewProject").addEventListener("click",newProject);
-  $("#btnRefresh").addEventListener("click",function(){load()});
+  $("#btnRefresh").addEventListener("click",function(){if(tab==="riwayat")loadHistory();else load()});
   document.querySelector(".tabs").addEventListener("click",function(e){
-    var b=e.target.closest("button");if(!b)return;tab=b.dataset.t;adding=false;render();
+    var b=e.target.closest("button");if(!b)return;tab=b.dataset.t;adding=false;render();if(tab==="riwayat"&&hist===null)loadHistory();
   });
 
   main.addEventListener("change",function(e){
@@ -209,6 +258,20 @@ var API_URL = "https://script.google.com/macros/s/AKfycbydVkNRNeDAi7PJi-Ekx1cRAo
   });
 
   main.addEventListener("click",function(e){
+    var rm=e.target.closest("button[data-delrow]");
+    if(rm){
+      var rtr=rm.closest("tr"),rid=rtr.dataset.id,rname=(items[rid]||{}).name||"material ini";
+      if(!window.confirm('Hapus "'+rname+'" dari daftar?\n\nBaris ini dihapus permanen dari Google Sheets. Arsip di Project selesai tidak ikut terhapus.'))return;
+      var rpin=getPin(false);if(rpin===null)return;
+      rm.disabled=true;
+      post({action:"hapusmaterial",pin:rpin,id:rid}).then(function(j){
+        if(!j.ok){if(j.error==="PIN"){try{localStorage.removeItem("stokPin")}catch(e){}}throw new Error(j.error)}
+        delete pending[rid];delete items[rid];render();setStatus("material dihapus","live");
+      }).catch(function(){setStatus("gagal menghapus (cek PIN)","err");rm.disabled=false});
+      return;
+    }
+    var dl=e.target.closest("button[data-del]");
+    if(dl){e.preventDefault();e.stopPropagation();deleteProject(dl.dataset.del,dl.dataset.label);return}
     var a=e.target.closest("button[data-add]");
     if(a){
       var m=a.dataset.add;
