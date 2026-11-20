@@ -3,313 +3,641 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Stok Opname BHP</title>
+<title>Inventory Enercentrik</title>
 <style>
-  :root{--bg:#f6f7f9;--card:#fff;--ink:#1c2430;--mute:#6b7685;--line:#e3e7ed;--ok:#1a7f4b;--warn:#b45309;--bad:#c0262d;--acc:#1f5fbf}
-  @media (prefers-color-scheme:dark){:root{--bg:#14181e;--card:#1c222b;--ink:#e8ecf2;--mute:#97a2b2;--line:#2b3340;--ok:#4cc38a;--warn:#f0a548;--bad:#ff7a80;--acc:#6ea8ff}}
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#1c2430;--mute:#6b7685;--line:#e3e7ed;--ok:#1a7f4b;--warn:#b45309;--bad:#c0262d;--acc:#1f5fbf;--info:#6b4fbb}
+  @media (prefers-color-scheme:dark){:root{--bg:#14181e;--card:#1c222b;--ink:#e8ecf2;--mute:#97a2b2;--line:#2b3340;--ok:#4cc38a;--warn:#f0a548;--bad:#ff7a80;--acc:#6ea8ff;--info:#a996f0}}
   *{box-sizing:border-box}
-  body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);padding:16px 16px 84px;max-width:980px;margin-inline:auto}
+  body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);padding:16px 16px 60px;max-width:1100px;margin-inline:auto}
+  body.noscroll{overflow:hidden}
   h1{font-size:20px;margin:0 0 2px}
-  .sub{color:var(--mute);font-size:13px;margin-bottom:14px}
+  h2{font-size:17px;margin:0 0 10px}
+  h3{font-size:15px;margin:0 0 8px}
+  .sub{color:var(--mute);font-size:13px;margin-bottom:10px}
+  .mute{color:var(--mute)}
+  .small{font-size:12px}
   .status{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mute)}
   .status.live{color:var(--ok);border-color:var(--ok)}
   .status.err{color:var(--bad);border-color:var(--bad)}
-  .tabs{display:flex;gap:6px;margin:14px 0}
-  .tabs button{flex:1;padding:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;font:inherit;cursor:pointer}
-  .tabs button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px}
+  nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin:6px 0 14px;-webkit-overflow-scrolling:touch}
+  nav a{flex:0 0 auto;padding:8px 13px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;text-decoration:none;font-size:14px;white-space:nowrap}
+  nav a.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
+  .pad{padding:14px}
+  .tw{overflow-x:auto}
   table{width:100%;border-collapse:collapse}
   th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
-  th{font-size:12px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+  th{font-size:12px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
   tr:last-child td{border-bottom:0}
-  td.num,th.num{text-align:center}
-  input[type=number]{width:64px;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;text-align:center}
-  input[type=text]{width:100%;min-width:90px;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
-  .step{display:inline-flex;align-items:center;gap:4px}
-  .step button{width:28px;height:28px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;cursor:pointer;font-size:16px;line-height:1}
-  input.sisa{font-weight:700}
+  td.num,th.num{text-align:right;white-space:nowrap}
+  td.c,th.c{text-align:center}
   .name{font-weight:500}
-  .warn{color:var(--bad);font-size:12px}
+  input[type=text],input[type=number],input[type=date],input[type=password],select,textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+  textarea{min-height:60px;resize:vertical}
+  input[readonly]{opacity:.7}
+  td input[type=number]{width:90px;text-align:right}
+  label{display:block;font-size:12px;color:var(--mute);margin-bottom:3px;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .grid .full{grid-column:1/-1}
   .btn{padding:8px 14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;font:inherit;cursor:pointer}
   .btn.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
-  .btn.plus{width:100%;border-style:dashed;color:var(--acc);font-weight:600}
-  .btn:disabled{opacity:.6}
-  .addform{display:flex;gap:8px;padding:10px;flex-wrap:wrap;align-items:center}
-  .addform input[type=text]{flex:1;min-width:160px}
-  .mute{color:var(--mute);font-weight:400;font-size:13px}
-  details.proj summary{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;list-style:none}
-  details.proj summary::-webkit-details-marker{display:none}
-  details.proj[open] summary{border-bottom:1px solid var(--line)}
-  .btn.rm{padding:2px 8px;color:var(--bad);font-size:13px;line-height:1.4}
-  .btn.del{color:var(--bad);padding:5px 12px;font-size:13px}
-  td.grp{background:var(--bg);font-size:12px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.03em}
+  .btn.dng{color:var(--bad)}
+  .btn.sm{padding:3px 10px;font-size:12px}
+  .btn:disabled{opacity:.55;cursor:default}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .row.sp{justify-content:space-between}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{padding:6px 12px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;font:inherit;font-size:13px;cursor:pointer}
+  .chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid currentColor;white-space:nowrap}
+  .b-ok{color:var(--ok)}.b-low{color:var(--warn)}.b-out{color:var(--bad)}.b-over{color:var(--info)}.b-mute{color:var(--mute)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .stat b{display:block;font-size:24px;line-height:1.2}
+  .stat span{font-size:12px;color:var(--mute)}
+  .stat.warn b{color:var(--warn)}.stat.bad b{color:var(--bad)}.stat.info b{color:var(--info)}
+  .ferr{color:var(--bad);font-size:13px;margin-top:8px;min-height:0}
+  .ferr:empty{display:none}
+  .hint{font-size:12px;color:var(--mute);margin-top:3px}
   .empty{padding:24px;text-align:center;color:var(--mute)}
-  @media (max-width:560px){th.note,td.note{display:none} input[type=number]{width:54px}}
+  .notice{padding:10px 14px;border:1px solid var(--warn);color:var(--warn);border-radius:8px;margin-bottom:14px;font-size:13px}
+  #overlay,#cbox{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:20px 12px;z-index:50}
+  #cbox{z-index:60}
+  #overlay[hidden],#cbox[hidden]{display:none}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:12px;width:100%;max-width:560px;padding:16px;margin:auto}
+  .modal.wide{max-width:760px}
+  .modal h2{margin-bottom:12px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;margin-bottom:12px}
+  .kv dt{color:var(--mute)}.kv dd{margin:0;font-weight:500}
+  #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:70;max-width:90vw}
+  #toast.show{opacity:.95}
+  .pcard{display:block;padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;color:inherit;text-decoration:none}
+  .pcard:last-child{border-bottom:0}
+  .pcard:hover{background:var(--bg)}
+  .grp td{background:var(--bg);font-size:12px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.03em}
+  @media (max-width:640px){.hide-s{display:none}body{padding:12px 10px 60px}td input[type=number]{width:70px}}
 </style>
 </head>
 <body>
-<h1>Stok Opname BHP</h1>
-<div class="sub">Setiap perubahan tersimpan otomatis ke Google Sheets dan selalu terbaru saat halaman dibuka. <span id="st" class="status">memuat…</span> <button class="btn" id="btnRefresh" style="padding:2px 10px;font-size:12px">Segarkan</button></div>
-
-<div class="tabs">
-  <button data-t="atas" class="on">BHP Atas</button>
-  <button data-t="bawah">BHP Bawah</button>
-  <button data-t="riwayat">Project selesai</button>
-</div>
-
-<div id="main"></div>
-
-<div class="card" id="projCard" style="padding:12px 14px">
-  <button class="btn" id="btnNewProject">Project baru</button>
-  <div class="sub" style="margin:8px 0 0">Dipakai saat project selesai: <b>Stok awal</b> diisi dengan <b>Sisa kantor</b> saat ini, Dibawa onsite dan Catatan dikosongkan. Kondisi project sebelumnya diarsipkan dan bisa dilihat di tab "Project selesai".</div>
-</div>
+<header>
+  <h1>Inventory Enercentrik</h1>
+  <div class="sub">BHP Atas &amp; BHP Bawah · data tersimpan di Google Sheets <span id="st" class="status">memuat…</span> <button class="btn sm" id="btnRefresh">Segarkan</button></div>
+</header>
+<nav id="nav"></nav>
+<main id="app"><div class="card"><div class="empty">Memuat data…</div></div></main>
+<div id="overlay" hidden><div class="modal" id="mbox"></div></div>
+<div id="cbox" hidden><div class="modal" id="cbody"></div></div>
+<div id="toast"></div>
 
 <script>
 // ====== ISI DENGAN URL WEB APP DARI APPS SCRIPT (berakhiran /exec) ======
-var API_URL = "https://script.google.com/macros/s/AKfycbydVkNRNeDAi7PJi-Ekx1cRAoH44Fn9arZRWZhNFYLSCb_NtIEImoTPAbYxwl3z7zlZKg/exec";
+var API_URL = "https://script.google.com/macros/s/AKfycby30BZchzO00Ev88PecCXeFHKkmeszGv_MdoKW1SxaYi0SpCZC8QLSRiazOxGm6POAntw/exec";
 // ========================================================================
 
-(function(){
-  var items = {}, hist = null, pending = {}, adding = false, tab = "atas", loaded = false;
-  var $ = function(s){return document.querySelector(s)};
-  var main = $("#main");
+(function () {
+'use strict';
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = n => (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('id-ID');
+const pad = n => String(n).padStart(2, '0');
+const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+const ls = { get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
 
-  function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
-  function num(v){v=parseInt(v,10);return isNaN(v)?0:v}
-  function setStatus(t,cls){var s=$("#st");s.textContent=t;s.className="status"+(cls?" "+cls:"")}
+const PAGES = [['dashboard', 'Dashboard'], ['master', 'Master Inventory'], ['in', 'Stock In'], ['out', 'Stock Out'],
+  ['project', 'Project'], ['opname', 'Stock Opname'], ['history', 'Transaction History']];
+const UNITS = ['Pcs', 'Unit', 'Meter', 'Set', 'Batang', 'Pair', 'Roll', 'Box'];
+const SUMBER = ['Pembelian', 'Retur Proyek', 'Lainnya'];
+const TUJUAN = ['Alokasi ke Proyek', 'Pemakaian Langsung', 'Dijual', 'Rusak / Hilang', 'Lainnya'];
+const JENIS = ['Stock In', 'Stock Out', 'Project Transfer', 'Project Return', 'Project Usage', 'Stock Adjustment'];
 
-  function eff(id){var o={},b=items[id]||{},p=pending[id]||{},k;for(k in b)o[k]=b[k];for(k in p)o[k]=p[k];return o}
+let D = null, page = 'dashboard', arg = '';
+const F = { master: { cat: 'all', q: '', st: 'all', arch: false }, hist: { from: '', to: '', mid: '', jenis: '', pid: '', q: '' }, proj: { st: 'all' }, opCat: 'all' };
+const reqs = {};
+const rid = k => reqs[k] || (reqs[k] = uid());
+const rdone = k => { delete reqs[k]; };
 
-  // Sisa kantor otomatis = stok awal - dibawa onsite + sisa onsite
-  function kantorOf(d){return num(d.awal)-num(d.onsite)+num(d.sisaOnsite)}
-  function updateRow(tr){
-    var d=eff(tr.dataset.id),k=kantorOf(d),sp=tr.querySelector(".sisakantor");
-    sp.textContent=k;sp.className="sisakantor sisa "+(k<0?"neg":k===0?"zero":"");
-    tr.querySelector(".warnline").textContent=num(d.sisaOnsite)>num(d.onsite)?"Sisa onsite melebihi yang dibawa":(k<0?"Sisa kantor minus — cek stok awal":"");
+// ---------- status stok ----------
+function stat(m) {
+  if (m.kantor <= 0) return 'out';
+  if (m.min > 0 && m.kantor <= m.min) return 'low';
+  if (m.max > 0 && m.kantor > m.max) return 'over';
+  return 'ok';
+}
+const ST = { ok: ['Normal', 'b-ok'], low: ['Low Stock', 'b-low'], out: ['Out of Stock', 'b-out'], over: ['Overstock', 'b-over'] };
+const badge = k => '<span class="badge ' + ST[k][1] + '">' + ST[k][0] + '</span>';
+function buyQty(m) { const s = stat(m); return ((s === 'low' || s === 'out') && m.max > 0) ? Math.max(0, m.max - m.kantor) : null; }
+const matById = id => D.materials.find(m => m.id === id);
+const projById = id => D.projects.find(p => p.id === id);
+const activeMats = () => D.materials.filter(m => m.active);
+const label = m => m.name + (m.spec ? ' — ' + m.spec : '');
+
+// ---------- status, toast, modal ----------
+function setStatus(t, cls) { const s = $('#st'); s.textContent = t; s.className = 'status' + (cls ? ' ' + cls : ''); }
+function stamp() { const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+let toastT;
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2600); }
+function openModal(html, wide) { const b = $('#mbox'); b.className = 'modal' + (wide ? ' wide' : ''); b.innerHTML = html; $('#overlay').hidden = false; document.body.classList.add('noscroll'); const f = $('input:not([type=hidden]):not([readonly]),select', b); if (f) f.focus(); }
+function closeModal() { $('#overlay').hidden = true; $('#mbox').innerHTML = ''; document.body.classList.remove('noscroll'); }
+function confirmBox(title, pairs, okLabel) {
+  return new Promise(res => {
+    const kv = pairs.filter(p => p[1] !== '' && p[1] != null).map(p => '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>').join('');
+    $('#cbody').innerHTML = '<h2>' + esc(title) + '</h2><dl class="kv">' + kv + '</dl><div class="row sp"><button class="btn" data-c="0">Batal</button><button class="btn pri" data-c="1">' + esc(okLabel || 'Simpan') + '</button></div>';
+    $('#cbox').hidden = false;
+    $('#cbody').onclick = e => { const b = e.target.closest('button[data-c]'); if (!b) return; $('#cbox').hidden = true; res(b.dataset.c === '1'); };
+  });
+}
+
+// ---------- komunikasi dengan Google Sheets ----------
+function getPin(force) {
+  let p = ls.get('imsPin');
+  if (!p || force) {
+    p = window.prompt(force ? 'PIN salah. Masukkan PIN lagi:' : 'Masukkan PIN untuk menyimpan perubahan:');
+    if (p === null) return null;
+    ls.set('imsPin', p);
   }
-  // Ubah "dibawa onsite". Sisa onsite ikut berubah selama belum diubah manual (nilainya masih sama dengan dibawa onsite).
-  function setOnsite(tr,id,v){
-    var d=eff(id),prevO=num(d.onsite),prevS=num(d.sisaOnsite);
-    tr.querySelector('input[data-f="onsite"]').value=v;
-    stage(id,"onsite",v);
-    if(prevS===prevO){
-      tr.querySelector('input[data-f="sisaOnsite"]').value=v;
-      stage(id,"sisaOnsite",v);
+  return p;
+}
+async function postJSON(body) {
+  const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
+  return r.json();
+}
+async function act(action, payload) {
+  const ok = (API_URL && API_URL.indexOf('PASTE_') !== 0);
+  if (!ok) throw new Error('API_URL belum diisi di index.html');
+  let pin = getPin(false);
+  if (pin === null) throw new Error('PIN dibatalkan');
+  setStatus('menyimpan…');
+  const body = Object.assign({ action: action, pin: pin }, payload);
+  let j;
+  try {
+    j = await postJSON(body);
+    if (!j.ok && j.error === 'PIN') {
+      ls.del('imsPin'); pin = getPin(true);
+      if (pin === null) { setStatus('belum tersimpan', 'err'); throw new Error('PIN dibatalkan'); }
+      body.pin = pin; j = await postJSON(body);
     }
-    updateRow(tr);
+  } catch (e) {
+    if (e.message === 'PIN dibatalkan') throw e;
+    setStatus('koneksi gagal', 'err');
+    throw new Error('Koneksi gagal — data belum tentu tersimpan. Tekan Simpan sekali lagi (aman, tidak akan tercatat ganda).');
   }
-  function pendingCount(){var n=0;Object.keys(pending).forEach(function(k){n+=Object.keys(pending[k]).length});return n}
-  var saveTimer=null,saving=false,pinDeclined=false;
-  function scheduleSave(){clearTimeout(saveTimer);setStatus("menyimpan…");saveTimer=setTimeout(saveAll,600)}
-
-  function stage(id,field,val){
-    var base=(items[id]||{})[field];
-    if(base===undefined)base=field==="note"?"":0;
-    var p=pending[id]||(pending[id]={});
-    if(val===base)delete p[field];else p[field]=val;
-    if(!Object.keys(p).length)delete pending[id];
-    if(pendingCount())scheduleSave();
+  if (!j.ok) {
+    setStatus('gagal menyimpan', 'err');
+    if (j.error !== 'ADMIN_PIN') load(true);
+    throw new Error(j.error === 'PIN' ? 'PIN salah' : j.error === 'ADMIN_PIN' ? 'PIN administrator salah' : j.error);
   }
+  D = j.data; setStatus('tersimpan ' + stamp(), 'live');
+  if (j.result && j.result.duplicate) toast('Transaksi ini sudah tersimpan sebelumnya (tidak digandakan)');
+  return j.result || {};
+}
+async function load(silent) {
+  if (!API_URL || API_URL.indexOf('PASTE_') === 0) { setStatus('API_URL belum diisi', 'err'); return; }
+  if (!silent) setStatus('memuat…');
+  try {
+    const r = await fetch(API_URL + (API_URL.indexOf('?') > -1 ? '&' : '?') + 't=' + Date.now());
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'gagal');
+    D = j.data; setStatus('terbaru ' + stamp(), 'live');
+    if (!isEditing()) render();
+  } catch (e) { setStatus('gagal memuat data', 'err'); if (!D) $('#app').innerHTML = '<div class="card"><div class="empty">Data tidak bisa dimuat. Periksa URL Web app dan koneksi, lalu tekan Segarkan.</div></div>'; }
+}
+function isEditing() {
+  if (!$('#overlay').hidden) return true;
+  const a = document.activeElement;
+  return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && $('#app').contains(a));
+}
 
-  function renderTable(){
-    var list=Object.keys(items).map(function(k){return {id:k,d:items[k]}})
-      .filter(function(x){return x.d.group===tab})
-      .sort(function(a,b){return num(a.d.no)-num(b.d.no)});
-    var h='<div class="card"><table><thead><tr><th>#</th><th>Material</th><th class="num">Stok awal</th><th class="num">Dibawa onsite</th><th class="num">Sisa onsite</th><th class="num">Sisa kantor</th><th class="note">Catatan</th><th></th></tr></thead><tbody>';
-    list.forEach(function(x){
-      var d=eff(x.id),k=kantorOf(d);
-      h+='<tr data-id="'+esc(x.id)+'"><td>'+esc(d.no)+'</td><td class="name">'+esc(d.name)+'<div class="warn warnline">'+(num(d.sisaOnsite)>num(d.onsite)?'Sisa onsite melebihi yang dibawa':(k<0?'Sisa kantor minus — cek stok awal':''))+'</div></td>'
-      +'<td class="num"><input type="number" min="0" data-f="awal" value="'+num(d.awal)+'"></td>'
-      +'<td class="num"><span class="step"><button data-act="dec">−</button><input type="number" min="0" data-f="onsite" value="'+num(d.onsite)+'"><button data-act="inc">+</button></span></td>'
-      +'<td class="num"><input type="number" min="0" data-f="sisaOnsite" value="'+num(d.sisaOnsite)+'"></td>'
-      +'<td class="num"><span class="sisakantor sisa '+(k<0?'neg':k===0?'zero':'')+'">'+k+'</span></td>'
-      +'<td class="note"><input type="text" data-f="note" value="'+esc(d.note||"")+'" placeholder="mis. proyek X"></td>'
-      +'<td class="num"><button class="btn rm" data-delrow="1" title="Hapus material ini" aria-label="Hapus '+esc(d.name)+'">✕</button></td></tr>';
+// ---------- komponen form ----------
+function matSelect(name, o) {
+  o = o || {};
+  const list = (o.list || activeMats());
+  let h = '<select name="' + name + '" required data-matsel data-mode="' + (o.mode || 'kantor') + '"' + (o.pid ? ' data-pid="' + esc(o.pid) + '"' : '') + '><option value="">— pilih material —</option>';
+  ['BHP Atas', 'BHP Bawah'].forEach(cat => {
+    const ms = list.filter(m => m.cat === cat); if (!ms.length) return;
+    h += '<optgroup label="' + cat + '">' + ms.map(m => '<option value="' + esc(m.id) + '"' + (o.sel === m.id ? ' selected' : '') + '>' + esc(label(m)) + ' (' + esc(m.unit) + ')</option>').join('') + '</optgroup>';
+  });
+  return h + '</select>';
+}
+function projSelect(name, o) {
+  o = o || {};
+  const ps = D.projects.filter(p => !p.legacy && (o.all || p.status !== 'Completed'));
+  return '<select name="' + name + '"' + (o.required ? ' required' : '') + ' data-projsel><option value="">' + (o.blank || '— pilih proyek —') + '</option>' +
+    ps.map(p => '<option value="' + esc(p.id) + '"' + (o.sel === p.id ? ' selected' : '') + '>' + esc(p.name) + ' (' + p.status + ')</option>').join('') + '</select>';
+}
+const opts = (arr, sel) => arr.map(x => '<option' + (x === sel ? ' selected' : '') + '>' + esc(x) + '</option>').join('');
+const field = (lab, inner, cls) => '<div class="' + (cls || '') + '"><label>' + lab + '</label>' + inner + '</div>';
+const picField = () => field('PIC', '<input type="text" name="pic" required maxlength="60" value="' + esc(ls.get('imsPic')) + '" placeholder="Nama petugas" autocomplete="name">');
+
+function updateHint(form) {
+  const sel = $('[data-matsel]', form); if (!sel) return;
+  const m = matById(sel.value), u = $('[name=unit]', form), h = $('[data-hint]', form);
+  if (u) u.value = m ? m.unit : '';
+  if (h) {
+    if (!m) { h.textContent = ''; return; }
+    if (sel.dataset.mode === 'proj') { const e = D.pm.find(x => x.pid === sel.dataset.pid && x.mid === m.id); h.textContent = 'Sisa di proyek: ' + fmt(e ? e.sisa : 0) + ' ' + m.unit; }
+    else if (sel.dataset.mode === 'kantor') h.textContent = 'Stok kantor tersedia: ' + fmt(m.kantor) + ' ' + m.unit;
+    else h.textContent = '';
+  }
+}
+function ferr(form, msg) { const e = $('.ferr', form); if (e) e.textContent = msg || ''; }
+async function guarded(form, fn) {
+  const btns = $$('button', form); btns.forEach(b => b.disabled = true); ferr(form, '');
+  try { await fn(); } catch (e) { ferr(form, e.message); } finally { btns.forEach(b => b.disabled = false); }
+}
+const fd = form => { const o = {}; new FormData(form).forEach((v, k) => { o[k] = v; }); return o; };
+
+// ---------- halaman: Dashboard ----------
+function pgDashboard() {
+  const am = activeMats(), low = am.filter(m => stat(m) === 'low'), out = am.filter(m => stat(m) === 'out'), over = am.filter(m => stat(m) === 'over');
+  const onProj = am.filter(m => m.proyek > 0);
+  const totalKantor = am.reduce((a, m) => a + m.kantor, 0), totalProj = am.reduce((a, m) => a + m.proyek, 0);
+  const activeP = D.projects.filter(p => p.status === 'Ongoing').length;
+  const d30 = new Date(); d30.setDate(d30.getDate() - 30); const cut = d30.getFullYear() + '-' + pad(d30.getMonth() + 1) + '-' + pad(d30.getDate());
+  const inn = D.history.filter(h => h.jenis === 'Stock In' && h.tanggal >= cut), outt = D.history.filter(h => h.jenis === 'Stock Out' && h.tanggal >= cut);
+  const sum = a => a.reduce((x, h) => x + h.qty, 0);
+  let h = '<div class="stats">' +
+    '<div class="stat"><b>' + am.length + '</b><span>Total jenis material</span></div>' +
+    '<div class="stat"><b>' + fmt(totalKantor) + '</b><span>Total stok tersedia di kantor (semua satuan)</span></div>' +
+    '<div class="stat warn"><b>' + low.length + '</b><span>Low Stock</span></div>' +
+    '<div class="stat bad"><b>' + out.length + '</b><span>Out of Stock</span></div>' +
+    '<div class="stat info"><b>' + over.length + '</b><span>Overstock</span></div>' +
+    '<div class="stat"><b>' + activeP + '</b><span>Proyek aktif (Ongoing)</span></div>' +
+    '<div class="stat"><b>' + onProj.length + '</b><span>Material di proyek · total ' + fmt(totalProj) + '</span></div></div>';
+  h += '<div class="stats">' +
+    '<div class="stat"><b>' + inn.length + ' trx · ' + fmt(sum(inn)) + '</b><span>Barang masuk (30 hari)</span></div>' +
+    '<div class="stat"><b>' + outt.length + ' trx · ' + fmt(sum(outt)) + '</b><span>Barang keluar (30 hari)</span></div></div>';
+  const need = low.concat(out).sort((a, b) => a.name.localeCompare(b.name));
+  h += '<div class="card"><div class="pad"><h2>Perlu perhatian</h2></div>';
+  if (!need.length && !over.length) h += '<div class="empty">Semua stok dalam batas aman.</div>';
+  else {
+    h += '<div class="tw"><table><thead><tr><th>Material</th><th>Status</th><th class="num">Stok kantor</th><th class="num hide-s">Min</th><th class="num hide-s">Max</th><th class="num">Saran beli</th></tr></thead><tbody>';
+    need.concat(over).forEach(m => {
+      const b = buyQty(m);
+      h += '<tr><td class="name">' + esc(label(m)) + '<div class="small mute">' + esc(m.cat) + '</div></td><td>' + badge(stat(m)) + '</td><td class="num">' + fmt(m.kantor) + ' ' + esc(m.unit) + '</td><td class="num hide-s">' + fmt(m.min) + '</td><td class="num hide-s">' + fmt(m.max) + '</td><td class="num">' +
+        (b !== null ? '<b>' + fmt(b) + ' ' + esc(m.unit) + '</b>' : (stat(m) === 'over' ? '<span class="mute">—</span>' : '<span class="mute small">isi Max Stock</span>')) + '</td></tr>';
     });
-    h+='</tbody></table></div>';
-    h+='<div id="addbox">'+(adding?
-      '<div class="card addform"><input type="text" id="nName" placeholder="Nama BHP baru" maxlength="80"> <input type="number" id="nAwal" min="0" value="0" title="Stok awal"> <button class="btn pri" data-add="ok">Tambah</button> <button class="btn" data-add="cancel">Batal</button></div>'
-      :'<button class="btn plus" data-add="open" title="Tambah BHP baru">+ Tambah BHP</button>')+'</div>';
-    main.innerHTML=h;
-    if(adding){var n=$("#nName");if(n)n.focus()}
+    h += '</tbody></table></div>';
   }
+  h += '</div><div class="card"><div class="pad"><h2>Transaksi terbaru</h2></div>' + histTable(D.history.slice(0, 8), true) + '</div>';
+  $('#app').innerHTML = h;
+}
 
-  function fmtDate(iso){try{return new Date(iso).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"})}catch(e){return ""}}
-
-  function renderHistory(){
-    if(hist===null){main.innerHTML='<div class="card"><div class="empty">Memuat arsip project…</div></div>';return}
-    if(!hist.length){main.innerHTML='<div class="card"><div class="empty">Belum ada project yang selesai. Arsip muncul di sini setelah Anda menekan "Project baru".</div></div>';return}
-    var h="";
-    hist.forEach(function(p){
-      var rows=p.rows.slice().sort(function(a,b){return a.group===b.group?a.no-b.no:(a.group==="atas"?-1:1)});
-      h+='<details class="card proj"><summary><span><b>'+esc(p.label)+'</b> <span class="mute">· selesai '+fmtDate(p.time)+' · '+rows.length+' material</span></span>'
-        +'<button class="btn del" data-del="'+esc(p.id)+'" data-label="'+esc(p.label)+'">Hapus</button></summary>'
-        +'<table><thead><tr><th>Material</th><th class="num">Stok awal</th><th class="num">Dibawa onsite</th><th class="num">Sisa onsite</th><th class="num">Sisa kantor</th><th class="note">Catatan</th></tr></thead><tbody>';
-      var last="";
-      rows.forEach(function(r){
-        if(r.group!==last){last=r.group;h+='<tr><td colspan="6" class="grp">'+(r.group==="atas"?"BHP Atas":"BHP Bawah")+'</td></tr>'}
-        h+='<tr><td class="name">'+esc(r.name)+'</td><td class="num">'+r.awal+'</td><td class="num">'+r.onsite+'</td><td class="num">'+r.sisaOnsite+'</td><td class="num"><b>'+r.sisaKantor+'</b></td><td class="note">'+esc(r.note)+'</td></tr>';
-      });
-      h+='</tbody></table></details>';
+// ---------- halaman: Master Inventory ----------
+function pgMaster() {
+  const f = F.master, q = f.q.toLowerCase();
+  const list = D.materials.filter(m => (f.arch || m.active) && (f.cat === 'all' || m.cat === f.cat) && (f.st === 'all' || stat(m) === f.st) &&
+    (!q || (m.name + ' ' + m.spec + ' ' + m.loc).toLowerCase().includes(q)))
+    .sort((a, b) => a.cat === b.cat ? a.no - b.no : (a.cat === 'BHP Atas' ? -1 : 1));
+  let h = '<div class="card pad"><div class="row sp"><div class="chips">' +
+    [['all', 'Semua'], ['BHP Atas', 'BHP Atas'], ['BHP Bawah', 'BHP Bawah']].map(c => '<button class="chip' + (f.cat === c[0] ? ' on' : '') + '" data-a="mcat" data-v="' + c[0] + '">' + c[1] + '</button>').join('') +
+    '</div><button class="btn pri" data-a="madd">+ Tambah material</button></div>' +
+    '<div class="grid" style="margin-top:10px">' +
+    field('Cari', '<input type="text" data-f="mq" value="' + esc(f.q) + '" placeholder="Nama, spesifikasi, lokasi">') +
+    field('Status stok', '<select data-f="mst"><option value="all">Semua</option>' + Object.keys(ST).map(k => '<option value="' + k + '"' + (f.st === k ? ' selected' : '') + '>' + ST[k][0] + '</option>').join('') + '</select>') +
+    '<div><label>&nbsp;</label><label style="font-weight:400;color:var(--ink)"><input type="checkbox" data-f="march"' + (f.arch ? ' checked' : '') + '> tampilkan yang diarsipkan</label></div></div></div>';
+  h += '<div class="card">';
+  if (!list.length) h += '<div class="empty">Tidak ada material.</div>';
+  else {
+    h += '<div class="tw"><table><thead><tr><th>Material</th><th class="hide-s">Satuan</th><th class="num hide-s">Stok awal</th><th class="num">Kantor</th><th class="num hide-s">Proyek</th><th class="num hide-s">Min</th><th class="num hide-s">Max</th><th>Status</th><th class="hide-s">Lokasi</th><th></th></tr></thead><tbody>';
+    let last = '';
+    list.forEach(m => {
+      if (f.cat === 'all' && m.cat !== last) { last = m.cat; h += '<tr class="grp"><td colspan="10">' + esc(m.cat) + '</td></tr>'; }
+      h += '<tr' + (m.active ? '' : ' style="opacity:.55"') + '><td class="name">' + esc(m.name) + (m.spec ? '<div class="small mute">' + esc(m.spec) + '</div>' : '') + (m.note ? '<div class="small mute">' + esc(m.note) + '</div>' : '') + (m.active ? '' : '<div class="small">(diarsipkan)</div>') + '</td>' +
+        '<td class="hide-s">' + esc(m.unit) + '</td><td class="num hide-s">' + fmt(m.awal) + '</td><td class="num"><b>' + fmt(m.kantor) + '</b><span class="small mute"> ' + esc(m.unit) + '</span></td><td class="num hide-s">' + fmt(m.proyek) + '</td>' +
+        '<td class="num hide-s">' + fmt(m.min) + '</td><td class="num hide-s">' + fmt(m.max) + '</td><td>' + (m.active ? badge(stat(m)) : '') + '</td><td class="hide-s">' + esc(m.loc) + '</td>' +
+        '<td class="num"><button class="btn sm" data-a="medit" data-v="' + esc(m.id) + '">Edit</button></td></tr>';
     });
-    main.innerHTML=h;
+    h += '</tbody></table></div>';
   }
+  $('#app').innerHTML = h + '</div>';
+}
+function masterForm(m) {
+  const isNew = !m; m = m || { cat: 'BHP Atas', unit: 'Pcs', loc: 'Kantor', awal: 0, min: 0, max: 0 };
+  const known = UNITS.includes(m.unit);
+  const lockAwal = !isNew && (m.txn > 0 || m.legacyRef);
+  openModal('<form data-form="master" data-id="' + esc(m.id || '') + '"><h2>' + (isNew ? 'Tambah material' : 'Edit material') + '</h2><div class="grid">' +
+    field('Nama material', '<input type="text" name="name" required maxlength="80" value="' + esc(m.name || '') + '">', 'full') +
+    field('Kategori', '<select name="cat">' + opts(['BHP Atas', 'BHP Bawah'], m.cat) + '</select>') +
+    field('Spesifikasi', '<input type="text" name="spec" maxlength="80" value="' + esc(m.spec || '') + '" placeholder="mis. 30 mm, M8, 4x6">') +
+    field('Satuan', '<select name="unitSel">' + UNITS.map(u => '<option' + (u === m.unit ? ' selected' : '') + '>' + u + '</option>').join('') + '<option value="__o"' + (known ? '' : ' selected') + '>Lainnya…</option></select>') +
+    field('Satuan lainnya', '<input type="text" name="unitOther" maxlength="20" value="' + (known ? '' : esc(m.unit)) + '" placeholder="isi jika memilih Lainnya">') +
+    field('Stok awal', '<input type="number" name="awal" step="any" min="0" value="' + (m.awal || 0) + '"' + (lockAwal ? ' readonly' : '') + '>' + (lockAwal ? '<div class="hint">Terkunci karena sudah ada transaksi. Koreksi lewat Stock Opname.</div>' : '')) +
+    field('Lokasi penyimpanan', '<input type="text" name="loc" maxlength="60" value="' + esc(m.loc || '') + '">') +
+    field('Minimum stock', '<input type="number" name="min" step="any" min="0" value="' + (m.min || 0) + '">') +
+    field('Maximum stock', '<input type="number" name="max" step="any" min="0" value="' + (m.max || 0) + '">') +
+    field('Catatan', '<input type="text" name="note" maxlength="120" value="' + esc(m.note || '') + '">', 'full') +
+    '</div><div class="ferr"></div><div class="row sp" style="margin-top:14px"><div class="row">' +
+    (isNew ? '' : '<button type="button" class="btn" data-a="march" data-v="' + esc(m.id) + '" data-on="' + (m.active ? '0' : '1') + '">' + (m.active ? 'Arsipkan' : 'Aktifkan lagi') + '</button>' +
+      (lockAwal ? '' : '<button type="button" class="btn dng" data-a="mdel" data-v="' + esc(m.id) + '">Hapus</button>')) +
+    '</div><div class="row"><button type="button" class="btn" data-a="close">Batal</button><button class="btn pri">Simpan</button></div></div>' +
+    (isNew || !lockAwal ? '' : '<div class="hint" style="margin-top:8px">Material yang sudah punya transaksi tidak bisa dihapus agar histori tetap utuh; gunakan Arsipkan.</div>') + '</form>');
+}
 
-  function loadHistory(){
-    hist=null;if(tab==="riwayat")renderHistory();
-    fetch(API_URL+(API_URL.indexOf("?")>-1?"&":"?")+"view=riwayat&t="+Date.now())
-      .then(function(r){return r.json()})
-      .then(function(j){if(!j.ok)throw new Error(j.error||"gagal");hist=j.projects||[];if(tab==="riwayat")renderHistory()})
-      .catch(function(){hist=[];setStatus("gagal memuat arsip (deploy Code.gs terbaru?)","err");if(tab==="riwayat")renderHistory()});
-  }
+// ---------- halaman: Stock In ----------
+function pgIn() {
+  let h = '<div class="card pad"><h2>Catat barang masuk</h2><form data-form="in"><div class="grid">' +
+    field('Tanggal penerimaan', '<input type="date" name="tanggal" required value="' + todayStr() + '">') +
+    field('Nama material', matSelect('materialId'), 'full') +
+    field('Jumlah', '<input type="number" name="qty" step="any" min="0" required inputmode="decimal"><div class="hint" data-hint></div>') +
+    field('Satuan', '<input type="text" name="unit" readonly>') +
+    field('Sumber barang', '<select name="sumber">' + opts(SUMBER) + '</select>') +
+    field('Supplier', '<input type="text" name="supplier" maxlength="80">') + picField() +
+    field('Catatan', '<input type="text" name="note" maxlength="150">', 'full') +
+    '</div><div class="ferr"></div><div style="margin-top:12px"><button class="btn pri">Simpan barang masuk</button></div></form></div>';
+  h += '<div class="card"><div class="pad"><h2>Barang masuk terbaru</h2></div>';
+  h += D.stockin.length ? '<div class="tw"><table><thead><tr><th>Tanggal</th><th>Material</th><th class="num">Jumlah</th><th>Sumber</th><th class="hide-s">Supplier</th><th class="hide-s">PIC</th></tr></thead><tbody>' +
+    D.stockin.slice(0, 15).map(r => '<tr><td>' + esc(r.tanggal) + '</td><td class="name">' + esc(r.nama) + '</td><td class="num">' + fmt(r.qty) + ' ' + esc(r.unit) + '</td><td>' + esc(r.sumber) + '</td><td class="hide-s">' + esc(r.supplier) + '</td><td class="hide-s">' + esc(r.pic) + '</td></tr>').join('') + '</tbody></table></div>' : '<div class="empty">Belum ada barang masuk.</div>';
+  $('#app').innerHTML = h + '</div>';
+}
 
-  function deleteProject(id,label){
-    if(!window.confirm('Hapus arsip "'+label+'" secara permanen? Data project ini tidak bisa dikembalikan.'))return;
-    var pin=getPin(false);if(pin===null)return;
-    post({action:"hapusproject",pin:pin,id:id}).then(function(j){
-      if(!j.ok){if(j.error==="PIN"){try{localStorage.removeItem("stokPin")}catch(e){}}throw new Error(j.error)}
-      setStatus("arsip dihapus","live");loadHistory();
-    }).catch(function(){setStatus("gagal menghapus (cek PIN)","err")});
-  }
+// ---------- halaman: Stock Out ----------
+function pgOut() {
+  let h = '<div class="card pad"><h2>Catat barang keluar</h2><form data-form="out"><div class="grid">' +
+    field('Tanggal pengeluaran', '<input type="date" name="tanggal" required value="' + todayStr() + '">') +
+    field('Nama material', matSelect('materialId'), 'full') +
+    field('Jumlah', '<input type="number" name="qty" step="any" min="0" required inputmode="decimal"><div class="hint" data-hint></div>') +
+    field('Satuan', '<input type="text" name="unit" readonly>') +
+    field('Tujuan penggunaan', '<select name="tujuan">' + opts(TUJUAN) + '</select><div class="hint">“Alokasi ke Proyek” menjadi stok proyek, bukan langsung dianggap habis.</div>') +
+    field('Nama proyek', projSelect('projectId', { blank: '— tanpa proyek —' }) + '<div class="hint">Wajib untuk Alokasi ke Proyek.</div>') + picField() +
+    field('Keterangan', '<input type="text" name="note" maxlength="150">', 'full') +
+    '</div><div class="ferr"></div><div style="margin-top:12px"><button class="btn pri">Simpan barang keluar</button></div></form></div>';
+  h += '<div class="card"><div class="pad"><h2>Barang keluar terbaru</h2></div>';
+  h += D.stockout.length ? '<div class="tw"><table><thead><tr><th>Tanggal</th><th>Material</th><th class="num">Jumlah</th><th>Tujuan</th><th class="hide-s">Proyek</th><th class="hide-s">PIC</th></tr></thead><tbody>' +
+    D.stockout.slice(0, 15).map(r => '<tr><td>' + esc(r.tanggal) + '</td><td class="name">' + esc(r.nama) + '</td><td class="num">' + fmt(r.qty) + ' ' + esc(r.unit) + '</td><td>' + esc(r.tujuan) + '</td><td class="hide-s">' + esc(r.proyek) + '</td><td class="hide-s">' + esc(r.pic) + '</td></tr>').join('') + '</tbody></table></div>' : '<div class="empty">Belum ada barang keluar.</div>';
+  $('#app').innerHTML = h + '</div>';
+}
 
-  function render(){
-    var isH=tab==="riwayat";
-    $("#projCard").style.display=isH?"none":"";
-    if(isH)renderHistory();else renderTable();
-    document.querySelectorAll(".tabs button").forEach(function(b){b.classList.toggle("on",b.dataset.t===tab)});
-  }
-
-  // ---------- komunikasi dengan Google Sheets ----------
-  function getPin(force){
-    var pin=null;try{pin=localStorage.getItem("stokPin")}catch(e){}
-    if(!pin||force){
-      pin=window.prompt(force?"PIN salah. Masukkan PIN lagi:":"Masukkan PIN untuk menyimpan perubahan:");
-      if(pin===null)return null;
-      try{localStorage.setItem("stokPin",pin)}catch(e){}
-    }
-    return pin;
-  }
-
-  function post(body){
-    return fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})
-      .then(function(r){return r.json()});
-  }
-
-  function load(silent){
-    if(!API_URL||API_URL.indexOf("PASTE_")===0){setStatus("API_URL belum diisi","err");return}
-    if(!silent)setStatus("memuat…");
-    fetch(API_URL+(API_URL.indexOf("?")>-1?"&":"?")+"t="+Date.now())
-      .then(function(r){return r.json()})
-      .then(function(j){
-        if(!j.ok)throw new Error(j.error||"gagal");
-        items={};j.items.forEach(function(it){items[it.id]=it});
-        loaded=true;if(!silent)setStatus("terbaru "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}),"live");
-        var a=document.activeElement;
-        if(a&&a.tagName==="INPUT"&&main.contains(a))return; // jangan ganggu pengetikan
-        render();
-      })
-      .catch(function(){setStatus("gagal memuat data","err")});
-  }
-
-  function saveAll(retryPin){
-    if(!pendingCount()){return}
-    if(saving){scheduleSave();return}
-    var pin=getPin(retryPin===true);
-    if(pin===null){setStatus("belum tersimpan (PIN dibatalkan)","err");return}
-    var snap=JSON.parse(JSON.stringify(pending));
-    var changes=Object.keys(snap).map(function(id){var c=JSON.parse(JSON.stringify(snap[id]));c.id=id;return c});
-    saving=true;
-    post({action:"save",pin:pin,changes:changes}).then(function(j){
-      if(!j.ok){
-        if(j.error==="PIN"){saving=false;return saveAll(true)}
-        throw new Error(j.error);
-      }
-      // catat sebagai tersimpan; perubahan yang masuk selama proses tetap menunggu
-      Object.keys(snap).forEach(function(id){
-        Object.keys(snap[id]).forEach(function(f){
-          if(!items[id])items[id]={id:id};
-          items[id][f]=snap[id][f];
-          if(pending[id]&&pending[id][f]===snap[id][f]){delete pending[id][f];if(!Object.keys(pending[id]).length)delete pending[id]}
-        });
-      });
-      setStatus("tersimpan "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}),"live");
-      if(!pendingCount())setTimeout(function(){if(!pendingCount()&&!saving)load(true)},300);
-    }).catch(function(){setStatus("gagal menyimpan — coba lagi","err")})
-      .then(function(){saving=false;if(pendingCount()&&!document.querySelector(".status.err"))scheduleSave()});
-  }
-
-  function newProject(){
-    if(!loaded){return}
-    if(pendingCount()||saving){window.alert("Masih ada perubahan yang belum tersimpan. Tunggu sampai status \"tersimpan\", lalu coba lagi.");return}
-    var label=window.prompt("Nama project yang baru selesai (kosongkan untuk otomatis: Project 1, Project 2, …):","");
-    if(label===null)return;
-    if(!window.confirm("Mulai project baru?\n\nStok awal semua material akan diganti dengan Sisa kantor saat ini. Dibawa onsite dan Catatan dikosongkan. Data project sebelumnya diarsipkan di tab Project selesai."))return;
-    var pin=getPin(false);if(pin===null)return;
-    var btn=$("#btnNewProject");btn.disabled=true;btn.textContent="Memproses…";
-    post({action:"newproject",pin:pin,label:label}).then(function(j){
-      if(!j.ok){if(j.error==="PIN"){try{localStorage.removeItem("stokPin")}catch(e){}}throw new Error(j.error)}
-      setStatus("project baru dimulai","live");hist=null;load(true);
-    }).catch(function(){setStatus("gagal memulai project baru (cek PIN / deploy Code.gs terbaru)","err")})
-      .then(function(){btn.disabled=false;btn.textContent="Project baru"});
-  }
-
-  // ---------- event ----------
-  $("#btnNewProject").addEventListener("click",newProject);
-  $("#btnRefresh").addEventListener("click",function(){if(tab==="riwayat")loadHistory();else load()});
-  document.querySelector(".tabs").addEventListener("click",function(e){
-    var b=e.target.closest("button");if(!b)return;tab=b.dataset.t;adding=false;render();if(tab==="riwayat"&&hist===null)loadHistory();
+// ---------- halaman: Project ----------
+function projTotals(pid) { const e = D.pm.filter(x => x.pid === pid); return { n: e.filter(x => x.sisa > 0).length, sisa: e.reduce((a, x) => a + x.sisa, 0), all: e }; }
+const PST = { Planning: 'b-mute', Ongoing: 'b-ok', Completed: 'b-over' };
+function pgProject() {
+  if (arg) return pgProjectDetail(arg);
+  const f = F.proj;
+  const list = D.projects.filter(p => f.st === 'all' || p.status === f.st).slice().reverse();
+  let h = '<div class="card pad"><div class="row sp"><div class="chips">' +
+    ['all', 'Planning', 'Ongoing', 'Completed'].map(s => '<button class="chip' + (f.st === s ? ' on' : '') + '" data-a="pst" data-v="' + s + '">' + (s === 'all' ? 'Semua' : s) + '</button>').join('') +
+    '</div><button class="btn pri" data-a="padd">+ Proyek baru</button></div></div><div class="card">';
+  if (!list.length) h += '<div class="empty">Belum ada proyek.</div>';
+  list.forEach(p => {
+    const t = projTotals(p.id);
+    h += '<a class="pcard" href="#project/' + esc(p.id) + '"><div class="row sp"><span class="name">' + esc(p.name) + '</span><span class="badge ' + (PST[p.status] || '') + '">' + esc(p.status) + (p.legacy ? ' · arsip lama' : '') + '</span></div>' +
+      '<div class="small mute">' + (p.lokasi ? esc(p.lokasi) + ' · ' : '') + (p.mulai ? 'mulai ' + esc(p.mulai) + ' · ' : '') + (p.selesai ? 'selesai ' + esc(p.selesai) + ' · ' : '') + (p.pic ? 'PIC ' + esc(p.pic) + ' · ' : '') +
+      (p.legacy ? t.all.length + ' material' : t.n + ' material masih di proyek') + '</div></a>';
   });
+  $('#app').innerHTML = h + '</div>';
+}
+function pgProjectDetail(id) {
+  const p = projById(id);
+  if (!p) { $('#app').innerHTML = '<div class="card"><div class="empty">Proyek tidak ditemukan. <a href="#project">Kembali</a></div></div>'; return; }
+  const t = projTotals(id), editable = !p.legacy, done = p.status === 'Completed';
+  let h = '<p><a href="#project">← Semua proyek</a></p><div class="card pad"><div class="row sp"><div><h2 style="margin:0">' + esc(p.name) + '</h2><div class="small mute">' +
+    (p.lokasi ? esc(p.lokasi) + ' · ' : '') + (p.mulai ? 'mulai ' + esc(p.mulai) + ' · ' : '') + (p.selesai ? 'selesai ' + esc(p.selesai) + ' · ' : '') + (p.pic ? 'PIC ' + esc(p.pic) : '') + '</div>' +
+    (p.note ? '<div class="small mute">' + esc(p.note) + '</div>' : '') + '</div><span class="badge ' + (PST[p.status] || '') + '">' + esc(p.status) + '</span></div>';
+  if (editable) h += '<div class="row" style="margin-top:12px">' +
+    '<button class="btn pri" data-a="ptr" data-v="' + id + '"' + (done ? ' disabled' : '') + '>Bawa material ke proyek</button>' +
+    '<button class="btn" data-a="puse" data-v="' + id + '"' + (done || !t.n ? ' disabled' : '') + '>Catat pemakaian</button>' +
+    '<button class="btn" data-a="pret" data-v="' + id + '"' + (!t.n ? ' disabled' : '') + '>Kembalikan ke kantor</button>' +
+    '<button class="btn" data-a="pcomp" data-v="' + id + '"' + (done ? ' disabled' : '') + '>Selesaikan proyek</button>' +
+    '<button class="btn" data-a="pedit" data-v="' + id + '">Edit info</button></div>';
+  else h += '<div class="hint" style="margin-top:8px">Arsip dari sistem lama: hanya untuk dilihat, tidak memengaruhi stok saat ini.</div>';
+  h += '</div><div class="card"><div class="pad"><h2>Material proyek</h2></div>';
+  h += t.all.length ? '<div class="tw"><table><thead><tr><th>Material</th><th class="num">Dibawa</th><th class="num">Digunakan</th><th class="num">Dikembalikan</th><th class="num">Sisa di proyek</th>' + (p.legacy ? '<th class="num hide-s">Stok awal</th><th class="num hide-s">Sisa kantor akhir</th>' : '') + '</tr></thead><tbody>' +
+    t.all.map(e => { const m = matById(e.mid); return '<tr><td class="name">' + esc(m ? label(m) : e.name) + '</td><td class="num">' + fmt(e.dibawa) + '</td><td class="num">' + fmt(e.digunakan) + '</td><td class="num">' + fmt(e.dikembalikan) + '</td><td class="num"><b>' + fmt(e.sisa) + '</b> <span class="small mute">' + esc(m ? m.unit : e.unit) + '</span></td>' +
+      (p.legacy ? '<td class="num hide-s">' + (e.awalArsip == null ? '' : fmt(e.awalArsip)) + '</td><td class="num hide-s">' + (e.kantorArsip == null ? '' : fmt(e.kantorArsip)) + '</td>' : '') + '</tr>'; }).join('') + '</tbody></table></div>' : '<div class="empty">Belum ada material yang dibawa ke proyek ini.</div>';
+  h += '</div>';
+  if (!p.legacy) { h += '<div class="card"><div class="pad"><h2>Histori proyek</h2></div>' + histTable(D.history.filter(x => x.pid === id && x.jenis !== 'Stock Out'), true) + '</div>'; }
+  $('#app').innerHTML = h;
+}
+function projForm(p) {
+  const isNew = !p; p = p || { status: 'Planning' };
+  openModal('<form data-form="proj" data-id="' + esc(p.id || '') + '"><h2>' + (isNew ? 'Proyek baru' : 'Edit proyek') + '</h2><div class="grid">' +
+    field('Nama proyek', '<input type="text" name="name" required maxlength="80" value="' + esc(p.name || '') + '">', 'full') +
+    field('Lokasi proyek', '<input type="text" name="lokasi" maxlength="80" value="' + esc(p.lokasi || '') + '">') +
+    field('Tanggal mulai', '<input type="date" name="mulai" value="' + esc(p.mulai || todayStr()) + '">') +
+    field('PIC proyek', '<input type="text" name="pic" maxlength="60" value="' + esc(p.pic || '') + '">') +
+    (p.status === 'Completed' ? '' : field('Status', '<select name="status">' + opts(['Planning', 'Ongoing'], p.status) + '</select>')) +
+    field('Catatan', '<input type="text" name="note" maxlength="150" value="' + esc(p.note || '') + '">', 'full') +
+    '</div><div class="ferr"></div><div class="row" style="margin-top:14px;justify-content:flex-end"><button type="button" class="btn" data-a="close">Batal</button><button class="btn pri">Simpan</button></div></form>');
+}
+function projMoveForm(kind, pid) {
+  const p = projById(pid), t = projTotals(pid);
+  const titles = { tr: 'Bawa material ke proyek', use: 'Catat pemakaian', ret: 'Kembalikan ke kantor' };
+  const list = kind === 'tr' ? activeMats().filter(m => m.kantor > 0) : t.all.filter(e => e.sisa > 0).map(e => matById(e.mid)).filter(Boolean);
+  openModal('<form data-form="pmove" data-kind="' + kind + '" data-pid="' + pid + '"><h2>' + titles[kind] + '</h2><div class="small mute" style="margin-bottom:10px">' + esc(p.name) + '</div><div class="grid">' +
+    field('Tanggal', '<input type="date" name="tanggal" required value="' + todayStr() + '">') +
+    field('Material', matSelect('materialId', { list: list, mode: kind === 'tr' ? 'kantor' : 'proj', pid: pid }), 'full') +
+    field('Jumlah', '<input type="number" name="qty" step="any" min="0" required inputmode="decimal"><div class="hint" data-hint></div>') +
+    field('Satuan', '<input type="text" name="unit" readonly>') + picField() +
+    field('Keterangan', '<input type="text" name="note" maxlength="150">', 'full') +
+    '</div><div class="ferr"></div><div class="row" style="margin-top:14px;justify-content:flex-end"><button type="button" class="btn" data-a="close">Batal</button><button class="btn pri">Simpan</button></div></form>');
+}
+function projCompleteForm(pid) {
+  const p = projById(pid), t = projTotals(pid), rows = t.all.filter(e => e.sisa > 0);
+  openModal('<form data-form="pcomp" data-pid="' + pid + '"><h2>Selesaikan proyek</h2><div class="small mute" style="margin-bottom:10px">' + esc(p.name) + '. Isi jumlah yang terpakai dan yang dikembalikan ke kantor. Sisanya tetap tercatat sebagai stok proyek.</div>' +
+    (rows.length ? '<div class="tw"><table><thead><tr><th>Material</th><th class="num">Sisa</th><th class="num">Digunakan</th><th class="num">Dikembalikan</th><th class="num">Tetap di proyek</th></tr></thead><tbody>' +
+      rows.map(e => { const m = matById(e.mid); return '<tr data-mid="' + esc(e.mid) + '" data-sisa="' + e.sisa + '"><td class="name">' + esc(m ? label(m) : e.name) + '</td><td class="num">' + fmt(e.sisa) + '</td><td class="num"><input type="number" step="any" min="0" data-k="used" value="0"></td><td class="num"><input type="number" step="any" min="0" data-k="ret" value="' + e.sisa + '"></td><td class="num" data-k="left">0</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="empty">Tidak ada material tersisa di proyek.</div>') +
+    '<div class="grid" style="margin-top:12px">' + field('Tanggal selesai', '<input type="date" name="tanggal" required value="' + todayStr() + '">') + picField() + '</div>' +
+    '<div class="ferr"></div><div class="row" style="margin-top:14px;justify-content:flex-end"><button type="button" class="btn" data-a="close">Batal</button><button class="btn pri">Selesaikan proyek</button></div></form>');
+}
 
-  main.addEventListener("change",function(e){
-    var i=e.target;if(!i.dataset.f)return;
-    var tr=i.closest("tr"),id=tr.dataset.id,f=i.dataset.f;
-    var v=f==="note"?i.value:Math.max(0,num(i.value));
-    if(f!=="note")i.value=v;
-    if(f==="onsite"){setOnsite(tr,id,v);return}
-    stage(id,f,v);updateRow(tr);
-  });
+// ---------- halaman: Stock Opname ----------
+function pgOpname() {
+  const am = activeMats().filter(m => F.opCat === 'all' || m.cat === F.opCat).sort((a, b) => a.cat === b.cat ? a.no - b.no : (a.cat === 'BHP Atas' ? -1 : 1));
+  let h = '';
+  if (!D.adminReady) h += '<div class="notice">PIN administrator belum diatur di Code.gs (KUNCI_ADMIN). Opname tetap bisa dicatat, tetapi Adjustment belum bisa disetujui.</div>';
+  h += '<div class="card pad"><h2>Stock opname</h2><div class="small mute" style="margin-bottom:10px">Isi stok fisik hasil hitung. Kosongkan baris yang tidak diperiksa. Selisih tidak langsung mengubah stok; koreksi memerlukan persetujuan administrator.</div>' +
+    '<form data-form="opname"><div class="grid">' + field('Tanggal stock opname', '<input type="date" name="tanggal" required value="' + todayStr() + '">') + field('PIC pemeriksa', '<input type="text" name="pic" required maxlength="60" value="' + esc(ls.get('imsPic')) + '">') +
+    field('Tampilkan', '<select data-f="opcat"><option value="all">Semua</option><option' + (F.opCat === 'BHP Atas' ? ' selected' : '') + '>BHP Atas</option><option' + (F.opCat === 'BHP Bawah' ? ' selected' : '') + '>BHP Bawah</option></select>') + '</div>' +
+    '<div class="tw" style="margin-top:10px"><table><thead><tr><th>Material</th><th class="num">Stok sistem</th><th class="num">Stok fisik</th><th class="num">Selisih</th><th class="hide-s">Keterangan</th></tr></thead><tbody>' +
+    am.map(m => '<tr data-mid="' + esc(m.id) + '" data-sis="' + m.kantor + '"><td class="name">' + esc(label(m)) + '<div class="small mute">' + esc(m.cat) + '</div></td><td class="num">' + fmt(m.kantor) + ' ' + esc(m.unit) + '</td><td class="num"><input type="number" step="any" min="0" data-k="fisik" inputmode="decimal"></td><td class="num" data-k="sel">—</td><td class="hide-s"><input type="text" data-k="ket" maxlength="120" style="min-width:140px"></td></tr>').join('') +
+    '</tbody></table></div><div class="ferr"></div><div style="margin-top:12px"><button class="btn pri">Simpan hasil opname</button></div></form></div>';
+  const pend = D.opname.filter(o => o.adj === 'Belum');
+  h += '<div class="card"><div class="pad"><h2>Selisih menunggu adjustment (' + pend.length + ')</h2></div>';
+  h += pend.length ? opTable(pend, true) : '<div class="empty">Tidak ada selisih yang menunggu.</div>';
+  h += '</div><div class="card"><div class="pad"><h2>Riwayat opname</h2></div>' + (D.opname.length ? opTable(D.opname.slice(0, 40), false) : '<div class="empty">Belum ada opname.</div>') + '</div>';
+  $('#app').innerHTML = h;
+}
+function opTable(rows, actions) {
+  const cls = { Match: 'b-ok', Surplus: 'b-over', Shortage: 'b-low' };
+  return '<div class="tw"><table><thead><tr><th>Tanggal</th><th>Material</th><th class="num">Sistem</th><th class="num">Fisik</th><th class="num">Selisih</th><th>Status</th><th class="hide-s">Adjustment</th><th class="hide-s">PIC</th>' + (actions ? '<th></th>' : '') + '</tr></thead><tbody>' +
+    rows.map(o => '<tr><td>' + esc(o.tanggal) + '</td><td class="name">' + esc(o.nama) + (o.ket ? '<div class="small mute">' + esc(o.ket) + '</div>' : '') + '</td><td class="num">' + fmt(o.sistem) + '</td><td class="num">' + fmt(o.fisik) + '</td><td class="num"><b>' + (o.selisih > 0 ? '+' : '') + fmt(o.selisih) + '</b></td><td><span class="badge ' + (cls[o.status] || '') + '">' + esc(o.status) + '</span></td><td class="hide-s">' + esc(o.adj) + '</td><td class="hide-s">' + esc(o.pic) + '</td>' +
+      (actions ? '<td class="num"><button class="btn sm" data-a="oadj" data-v="' + esc(o.id) + '" data-m="adjust">Adjustment</button> <button class="btn sm" data-a="oadj" data-v="' + esc(o.id) + '" data-m="ignore">Abaikan</button></td>' : '') + '</tr>').join('') + '</tbody></table></div>';
+}
+function adjustForm(o, mode) {
+  openModal('<form data-form="adjust" data-id="' + esc(o.id) + '" data-mode="' + mode + '"><h2>' + (mode === 'adjust' ? 'Setujui adjustment' : 'Abaikan selisih') + '</h2><dl class="kv"><dt>Material</dt><dd>' + esc(o.nama) + '</dd><dt>Stok sistem</dt><dd>' + fmt(o.sistem) + '</dd><dt>Stok fisik</dt><dd>' + fmt(o.fisik) + '</dd><dt>Selisih</dt><dd>' + (o.selisih > 0 ? '+' : '') + fmt(o.selisih) + ' (' + esc(o.status) + ')</dd></dl>' +
+    (mode === 'adjust' ? '<div class="hint" style="margin-bottom:10px">Stok sistem akan disesuaikan menjadi stok fisik dan tercatat di histori transaksi.</div>' : '<div class="hint" style="margin-bottom:10px">Stok tidak diubah. Keputusan ini tetap tercatat pada riwayat opname.</div>') +
+    '<div class="grid">' + field('Disetujui oleh (administrator/supervisor)', '<input type="text" name="approver" required maxlength="60">') + field('PIN administrator', '<input type="password" name="adminPin" required autocomplete="off">') + picField() + field('Catatan', '<input type="text" name="note" maxlength="150">') +
+    '</div><div class="ferr"></div><div class="row" style="margin-top:14px;justify-content:flex-end"><button type="button" class="btn" data-a="close">Batal</button><button class="btn pri">' + (mode === 'adjust' ? 'Setujui &amp; sesuaikan' : 'Abaikan') + '</button></div></form>');
+}
 
-  main.addEventListener("click",function(e){
-    var rm=e.target.closest("button[data-delrow]");
-    if(rm){
-      var rtr=rm.closest("tr"),rid=rtr.dataset.id,rname=(items[rid]||{}).name||"material ini";
-      if(!window.confirm('Hapus "'+rname+'" dari daftar?\n\nBaris ini dihapus permanen dari Google Sheets. Arsip di Project selesai tidak ikut terhapus.'))return;
-      var rpin=getPin(false);if(rpin===null)return;
-      rm.disabled=true;
-      post({action:"hapusmaterial",pin:rpin,id:rid}).then(function(j){
-        if(!j.ok){if(j.error==="PIN"){try{localStorage.removeItem("stokPin")}catch(e){}}throw new Error(j.error)}
-        delete pending[rid];delete items[rid];render();setStatus("material dihapus","live");
-      }).catch(function(){setStatus("gagal menghapus (cek PIN)","err");rm.disabled=false});
-      return;
-    }
-    var dl=e.target.closest("button[data-del]");
-    if(dl){e.preventDefault();e.stopPropagation();deleteProject(dl.dataset.del,dl.dataset.label);return}
-    var a=e.target.closest("button[data-add]");
-    if(a){
-      var m=a.dataset.add;
-      if(m==="open"){adding=true;render();return}
-      if(m==="cancel"){adding=false;render();return}
-      var name=($("#nName").value||"").trim();
-      if(!name){$("#nName").focus();return}
-      var pin=getPin(false);if(pin===null)return;
-      var awal=Math.max(0,num($("#nAwal").value));
-      a.disabled=true;a.textContent="Menambah…";
-      post({action:"add",pin:pin,group:tab,name:name,awal:awal}).then(function(j){
-        if(!j.ok){if(j.error==="PIN"){try{localStorage.removeItem("stokPin")}catch(e){}}throw new Error(j.error)}
-        adding=false;load(true);
-      }).catch(function(){setStatus("gagal menambah (cek PIN)","err");a.disabled=false;a.textContent="Tambah"});
-      return;
-    }
-    var b=e.target.closest("button[data-act]");if(!b)return;
-    var tr=b.closest("tr"),id=tr.dataset.id,cur=num(eff(id).onsite);
-    var v=Math.max(0,cur+(b.dataset.act==="inc"?1:-1));
-    setOnsite(tr,id,v);
-  });
+// ---------- halaman: Transaction History ----------
+function histFiltered() {
+  const f = F.hist, q = f.q.toLowerCase();
+  return D.history.filter(h => (!f.from || h.tanggal >= f.from) && (!f.to || h.tanggal <= f.to) && (!f.mid || h.mid === f.mid) && (!f.jenis || h.jenis === f.jenis) &&
+    (!f.pid || h.pid === f.pid) && (!q || (h.nama + ' ' + h.spec + ' ' + h.ket + ' ' + h.id + ' ' + h.pic).toLowerCase().includes(q)));
+}
+function histTable(rows, compact) {
+  if (!rows.length) return '<div class="empty">Tidak ada transaksi.</div>';
+  return '<div class="tw"><table><thead><tr><th>ID</th><th>Tanggal</th><th>Jenis</th><th>Material</th><th class="num">Jumlah</th>' + (compact ? '' : '<th class="hide-s">Asal</th><th class="hide-s">Tujuan</th>') + '<th class="hide-s">Proyek</th><th class="hide-s">PIC</th>' + (compact ? '' : '<th class="hide-s">Keterangan</th>') + '</tr></thead><tbody>' +
+    rows.map(h => '<tr><td class="small">' + esc(h.id) + '</td><td>' + esc(h.tanggal) + '<div class="small mute hide-s">' + esc(h.waktu.slice(11, 16)) + '</div></td><td><span class="badge b-mute">' + esc(h.jenis) + '</span></td><td class="name">' + esc(h.nama) + (h.spec ? '<div class="small mute">' + esc(h.spec) + '</div>' : '') + '</td><td class="num">' + (h.qty > 0 && h.jenis === 'Stock Adjustment' ? '+' : '') + fmt(h.qty) + ' ' + esc(h.unit) + '</td>' +
+      (compact ? '' : '<td class="hide-s">' + esc(h.asal) + '</td><td class="hide-s">' + esc(h.tujuan) + '</td>') + '<td class="hide-s">' + esc(h.proyek) + '</td><td class="hide-s">' + esc(h.pic) + '</td>' + (compact ? '' : '<td class="hide-s">' + esc(h.ket) + '</td>') + '</tr>').join('') + '</tbody></table></div>';
+}
+function pgHistory() {
+  const f = F.hist, rows = histFiltered();
+  let h = '<div class="card pad"><div class="grid">' +
+    field('Dari tanggal', '<input type="date" data-f="hfrom" value="' + esc(f.from) + '">') + field('Sampai tanggal', '<input type="date" data-f="hto" value="' + esc(f.to) + '">') +
+    field('Material', '<select data-f="hmid"><option value="">Semua</option>' + D.materials.map(m => '<option value="' + esc(m.id) + '"' + (f.mid === m.id ? ' selected' : '') + '>' + esc(label(m)) + '</option>').join('') + '</select>') +
+    field('Jenis transaksi', '<select data-f="hjenis"><option value="">Semua</option>' + JENIS.map(j => '<option' + (f.jenis === j ? ' selected' : '') + '>' + j + '</option>').join('') + '</select>') +
+    field('Proyek', '<select data-f="hpid"><option value="">Semua</option>' + D.projects.filter(p => !p.legacy).map(p => '<option value="' + esc(p.id) + '"' + (f.pid === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('') + '</select>') +
+    field('Cari', '<input type="text" data-f="hq" value="' + esc(f.q) + '" placeholder="Nama material, ID, PIC, keterangan">') +
+    '</div><div class="row sp" style="margin-top:10px"><span class="small mute">' + rows.length + ' transaksi' + (rows.length > 300 ? ' (300 teratas ditampilkan; export memuat semuanya)' : '') + '</span><div class="row"><button class="btn sm" data-a="hreset">Reset filter</button><button class="btn sm pri" data-a="hcsv">Export CSV (Excel)</button></div></div></div>';
+  h += '<div class="card">' + histTable(rows.slice(0, 300), false) + '</div>';
+  $('#app').innerHTML = h;
+}
+function exportCSV() {
+  const rows = histFiltered(), cols = ['id', 'waktu', 'tanggal', 'jenis', 'nama', 'spec', 'qty', 'unit', 'asal', 'tujuan', 'proyek', 'pic', 'ket'];
+  const head = ['Transaction ID', 'Waktu Input', 'Tanggal', 'Jenis Transaksi', 'Nama Material', 'Spesifikasi', 'Jumlah', 'Satuan', 'Lokasi Asal', 'Lokasi Tujuan', 'Nama Proyek', 'PIC', 'Keterangan'];
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const csv = '﻿' + [head.map(q).join(',')].concat(rows.map(r => cols.map(c => q(r[c])).join(','))).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'histori-transaksi-' + todayStr() + '.csv'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
 
-  // segarkan otomatis saat tab dibuka kembali
-  document.addEventListener("visibilitychange",function(){if(!document.hidden&&!pendingCount()&&!saving)load(true)});
+// ---------- render & routing ----------
+function renderNav() {
+  $('#nav').innerHTML = PAGES.map(p => '<a href="#' + p[0] + '" class="' + (page === p[0] ? 'on' : '') + '">' + p[1] + '</a>').join('');
+}
+function render() {
+  renderNav();
+  if (!D) return;
+  ({ dashboard: pgDashboard, master: pgMaster, 'in': pgIn, out: pgOut, project: pgProject, opname: pgOpname, history: pgHistory }[page] || pgDashboard)();
+}
+function route() {
+  const h = (location.hash || '#dashboard').slice(1).split('/');
+  page = PAGES.some(p => p[0] === h[0]) ? h[0] : 'dashboard'; arg = h[1] || '';
+  closeModal(); render(); window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
 
-  load();
+// ---------- event: filter & klik ----------
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset.f === 'mq') { F.master.q = t.value; const pos = t.selectionStart; pgMaster(); const n = $('[data-f=mq]'); n.focus(); n.setSelectionRange(pos, pos); }
+  else if (t.dataset.f === 'hq') { F.hist.q = t.value; const pos = t.selectionStart; pgHistory(); const n = $('[data-f=hq]'); n.focus(); n.setSelectionRange(pos, pos); }
+  else if (t.dataset.k === 'fisik') { const tr = t.closest('tr'), sel = $('[data-k=sel]', tr); if (t.value === '') { sel.textContent = '—'; sel.style.color = ''; return; } const d = Math.round((Number(t.value) - Number(tr.dataset.sis)) * 10000) / 10000; sel.textContent = (d > 0 ? '+' : '') + fmt(d); sel.style.color = d === 0 ? 'var(--ok)' : d > 0 ? 'var(--info)' : 'var(--warn)'; }
+  else if (t.dataset.k === 'used' || t.dataset.k === 'ret') { const tr = t.closest('tr'), u = Number($('[data-k=used]', tr).value) || 0, r = Number($('[data-k=ret]', tr).value) || 0, left = Math.round((Number(tr.dataset.sisa) - u - r) * 10000) / 10000; const c = $('[data-k=left]', tr); c.textContent = fmt(left); c.style.color = left < 0 ? 'var(--bad)' : ''; }
+});
+document.addEventListener('change', e => {
+  const t = e.target, f = t.dataset.f;
+  if (f === 'mst') { F.master.st = t.value; pgMaster(); }
+  else if (f === 'march') { F.master.arch = t.checked; pgMaster(); }
+  else if (f === 'opcat') { F.opCat = t.value; pgOpname(); }
+  else if (f && f[0] === 'h' && f !== 'hq') { const k = { hfrom: 'from', hto: 'to', hmid: 'mid', hjenis: 'jenis', hpid: 'pid' }[f]; F.hist[k] = t.value; pgHistory(); }
+  else if (t.matches('[data-matsel]')) updateHint(t.closest('form'));
+  else if (t.name === 'tujuan') { const p = $('[name=projectId]', t.closest('form')); if (p) p.required = t.value === 'Alokasi ke Proyek'; }
+});
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-a]'); if (!b) { if (e.target === $('#overlay')) closeModal(); return; }
+  const a = b.dataset.a, v = b.dataset.v;
+  if (a === 'close') closeModal();
+  else if (a === 'mcat') { F.master.cat = v; pgMaster(); }
+  else if (a === 'madd') masterForm(null);
+  else if (a === 'medit') masterForm(matById(v));
+  else if (a === 'march') { const form = b.closest('form'); guarded(form, async () => { await act('setMaterialActive', { id: v, active: b.dataset.on === '1' }); closeModal(); toast('Tersimpan'); render(); }); }
+  else if (a === 'mdel') { const m = matById(v), form = b.closest('form'); guarded(form, async () => { if (!(await confirmBox('Hapus material?', [['Material', label(m)], ['Catatan', 'Dihapus permanen dari Google Sheets']], 'Hapus'))) return; await act('deleteMaterial', { id: v }); closeModal(); toast('Material dihapus'); render(); }); }
+  else if (a === 'pst') { F.proj.st = v; pgProject(); }
+  else if (a === 'padd') projForm(null);
+  else if (a === 'pedit') projForm(projById(v));
+  else if (a === 'ptr' || a === 'puse' || a === 'pret') projMoveForm(a === 'ptr' ? 'tr' : a === 'puse' ? 'use' : 'ret', v);
+  else if (a === 'pcomp') projCompleteForm(v);
+  else if (a === 'oadj') adjustForm(D.opname.find(o => o.id === v), b.dataset.m);
+  else if (a === 'hreset') { F.hist = { from: '', to: '', mid: '', jenis: '', pid: '', q: '' }; pgHistory(); }
+  else if (a === 'hcsv') exportCSV();
+});
+$('#btnRefresh').addEventListener('click', () => load());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) load(true); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#overlay').hidden && $('#cbox').hidden) closeModal(); });
+
+// ---------- event: submit form ----------
+const SUBMIT = {
+  async master(form) {
+    const o = fd(form), id = form.dataset.id, unit = o.unitSel === '__o' ? (o.unitOther || '').trim() : o.unitSel;
+    if (!unit) throw new Error('Satuan wajib diisi');
+    const payload = { name: o.name, cat: o.cat, spec: o.spec, unit: unit, awal: o.awal, min: o.min, max: o.max, loc: o.loc, note: o.note };
+    if (id) { await act('updateMaterial', Object.assign({ id: id }, payload)); }
+    else { const k = 'mat:' + o.name; await act('addMaterial', Object.assign({ requestId: rid(k) }, payload)); rdone(k); }
+    closeModal(); toast('Material tersimpan'); render();
+  },
+  async 'in'(form) {
+    const o = fd(form), m = matById(o.materialId); if (!m) throw new Error('Pilih material');
+    if (!(await confirmBox('Simpan barang masuk?', [['Tanggal', o.tanggal], ['Material', label(m)], ['Jumlah', fmt(o.qty) + ' ' + m.unit], ['Sumber', o.sumber], ['Supplier', o.supplier], ['PIC', o.pic], ['Stok kantor jadi', fmt(m.kantor + Number(o.qty)) + ' ' + m.unit]]))) return;
+    ls.set('imsPic', o.pic); const k = 'in';
+    await act('stockIn', { requestId: rid(k), materialId: o.materialId, qty: o.qty, tanggal: o.tanggal, sumber: o.sumber, supplier: o.supplier, pic: o.pic, note: o.note });
+    rdone(k); toast('Barang masuk tersimpan'); render();
+  },
+  async out(form) {
+    const o = fd(form), m = matById(o.materialId); if (!m) throw new Error('Pilih material');
+    if (o.tujuan === 'Alokasi ke Proyek' && !o.projectId) throw new Error('Pilih proyek untuk alokasi');
+    const qn = Number(o.qty); if (qn > m.kantor) throw new Error('Jumlah melebihi stok kantor (' + fmt(m.kantor) + ' ' + m.unit + ')');
+    const pj = projById(o.projectId);
+    if (!(await confirmBox('Simpan barang keluar?', [['Tanggal', o.tanggal], ['Material', label(m)], ['Jumlah', fmt(qn) + ' ' + m.unit], ['Tujuan', o.tujuan], ['Proyek', pj ? pj.name : ''], ['PIC', o.pic], ['Stok kantor jadi', fmt(m.kantor - qn) + ' ' + m.unit]]))) return;
+    ls.set('imsPic', o.pic); const k = 'out';
+    await act('stockOut', { requestId: rid(k), materialId: o.materialId, qty: o.qty, tanggal: o.tanggal, tujuan: o.tujuan, projectId: o.projectId, pic: o.pic, note: o.note });
+    rdone(k); toast(o.tujuan === 'Alokasi ke Proyek' ? 'Dialokasikan ke proyek' : 'Barang keluar tersimpan'); render();
+  },
+  async proj(form) {
+    const o = fd(form), id = form.dataset.id;
+    if (id) { await act('updateProject', { id: id, name: o.name, lokasi: o.lokasi, mulai: o.mulai, pic: o.pic, status: o.status, note: o.note }); }
+    else { const k = 'proj:' + o.name; await act('createProject', { requestId: rid(k), name: o.name, lokasi: o.lokasi, mulai: o.mulai, pic: o.pic, status: o.status, note: o.note }); rdone(k); }
+    closeModal(); toast('Proyek tersimpan'); render();
+  },
+  async pmove(form) {
+    const o = fd(form), kind = form.dataset.kind, pid = form.dataset.pid, m = matById(o.materialId); if (!m) throw new Error('Pilih material');
+    const action = { tr: 'transfer', use: 'usage', ret: 'returnToOffice' }[kind], p = projById(pid);
+    if (!(await confirmBox({ tr: 'Bawa material ke proyek?', use: 'Catat pemakaian?', ret: 'Kembalikan ke kantor?' }[kind], [['Proyek', p.name], ['Material', label(m)], ['Jumlah', fmt(o.qty) + ' ' + m.unit], ['PIC', o.pic]]))) return;
+    ls.set('imsPic', o.pic); const k = 'pm:' + kind + pid;
+    await act(action, { requestId: rid(k), projectId: pid, materialId: o.materialId, qty: o.qty, tanggal: o.tanggal, pic: o.pic, note: o.note });
+    rdone(k); closeModal(); toast('Tersimpan'); render();
+  },
+  async pcomp(form) {
+    const o = fd(form), pid = form.dataset.pid, p = projById(pid), items = [];
+    $$('tbody tr', form).forEach(tr => {
+      const u = Number($('[data-k=used]', tr).value) || 0, r = Number($('[data-k=ret]', tr).value) || 0, sisa = Number(tr.dataset.sisa);
+      if (u < 0 || r < 0) throw new Error('Jumlah tidak boleh negatif');
+      if (u + r > sisa + 0.00001) throw new Error('Digunakan + dikembalikan melebihi sisa di proyek');
+      if (u > 0 || r > 0) items.push({ materialId: tr.dataset.mid, used: u, returned: r });
+    });
+    const left = $$('tbody tr', form).filter(tr => (Number(tr.dataset.sisa) - (Number($('[data-k=used]', tr).value) || 0) - (Number($('[data-k=ret]', tr).value) || 0)) > 0.00001).length;
+    if (!(await confirmBox('Selesaikan proyek?', [['Proyek', p.name], ['Tanggal selesai', o.tanggal], ['Material dicatat', items.length + ' baris'], ['Masih di proyek', left ? left + ' material tetap tercatat sebagai stok proyek' : 'Tidak ada'], ['Catatan', 'Proyek akan masuk arsip Completed']], 'Selesaikan'))) return;
+    ls.set('imsPic', o.pic); const k = 'pc:' + pid;
+    await act('completeProject', { requestId: rid(k), id: pid, tanggal: o.tanggal, pic: o.pic, items: items });
+    rdone(k); closeModal(); toast('Proyek selesai'); render();
+  },
+  async opname(form) {
+    const o = fd(form), items = [];
+    $$('tbody tr', form).forEach(tr => { const f = $('[data-k=fisik]', tr).value; if (f !== '') items.push({ materialId: tr.dataset.mid, fisik: f, ket: $('[data-k=ket]', tr).value }); });
+    if (!items.length) throw new Error('Isi minimal satu stok fisik');
+    const diff = items.filter(i => Math.abs(Number(i.fisik) - Number($('tr[data-mid="' + i.materialId + '"]', form).dataset.sis)) > 0.00001).length;
+    if (!(await confirmBox('Simpan hasil opname?', [['Tanggal', o.tanggal], ['PIC', o.pic], ['Material diperiksa', String(items.length)], ['Ada selisih', String(diff)], ['Catatan', 'Stok tidak berubah sebelum adjustment disetujui']]))) return;
+    ls.set('imsPic', o.pic); const k = 'opname';
+    const r = await act('opname', { requestId: rid(k), tanggal: o.tanggal, pic: o.pic, items: items });
+    rdone(k); toast('Opname tersimpan' + (r.selisih ? ' — ' + r.selisih + ' selisih menunggu adjustment' : '')); render();
+  },
+  async adjust(form) {
+    const o = fd(form), id = form.dataset.id;
+    await act('adjust', { opnameId: id, mode: form.dataset.mode, approver: o.approver, adminPin: o.adminPin, pic: o.pic, note: o.note });
+    ls.set('imsPic', o.pic); closeModal(); toast(form.dataset.mode === 'adjust' ? 'Adjustment disetujui' : 'Selisih diabaikan'); render();
+  }
+};
+document.addEventListener('submit', e => {
+  const form = e.target; if (!form.dataset.form) return;
+  e.preventDefault();
+  guarded(form, () => SUBMIT[form.dataset.form](form));
+});
+
+route(); load();
 })();
 </script>
 </body>
