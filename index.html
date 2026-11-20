@@ -8,6 +8,7 @@
   :root{--bg:#f6f7f9;--card:#fff;--ink:#1c2430;--mute:#6b7685;--line:#e3e7ed;--ok:#1a7f4b;--warn:#b45309;--bad:#c0262d;--acc:#1f5fbf;--info:#6b4fbb}
   @media (prefers-color-scheme:dark){:root{--bg:#14181e;--card:#1c222b;--ink:#e8ecf2;--mute:#97a2b2;--line:#2b3340;--ok:#4cc38a;--warn:#f0a548;--bad:#ff7a80;--acc:#6ea8ff;--info:#a996f0}}
   *{box-sizing:border-box}
+  [hidden]{display:none !important}
   body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);padding:16px 16px 60px;max-width:1100px;margin-inline:auto}
   body.noscroll{overflow:hidden}
   h1{font-size:20px;margin:0 0 2px}
@@ -199,9 +200,18 @@ async function load(silent) {
     const r = await fetch(API_URL + (API_URL.indexOf('?') > -1 ? '&' : '?') + 't=' + Date.now());
     const j = await r.json();
     if (!j.ok) throw new Error(j.error || 'gagal');
+    if (!j.data || !Array.isArray(j.data.materials)) throw new Error('OLD_SCRIPT');
     D = j.data; setStatus('terbaru ' + stamp(), 'live');
     if (!isEditing()) render();
-  } catch (e) { setStatus('gagal memuat data', 'err'); if (!D) $('#app').innerHTML = '<div class="card"><div class="empty">Data tidak bisa dimuat. Periksa URL Web app dan koneksi, lalu tekan Segarkan.</div></div>'; }
+  } catch (e) {
+    if (e.message === 'OLD_SCRIPT') {
+      setStatus('Apps Script belum diperbarui', 'err');
+      $('#app').innerHTML = '<div class="card pad"><h2>Skrip di Google Sheets masih versi lama</h2><p>Halaman ini sudah versi baru, tetapi Web app Apps Script yang dipanggil masih memakai <code>Code.gs</code> lama, jadi data belum bisa ditampilkan.</p><ol><li>Buka Google Sheet → <b>Extensions → Apps Script</b>.</li><li>Ganti seluruh isi editor dengan <code>Code.gs</code> yang baru (jangan lupa mengisi <code>KUNCI</code> dan <code>KUNCI_ADMIN</code>), lalu <b>Save</b>.</li><li><b>Deploy → Manage deployments →</b> ikon pensil <b>→ Version: New version → Deploy</b>.</li><li>Kembali ke halaman ini dan tekan <b>Segarkan</b>.</li></ol></div>';
+    } else {
+      setStatus('gagal memuat data', 'err');
+      if (!D) $('#app').innerHTML = '<div class="card"><div class="empty">Data tidak bisa dimuat. Periksa URL Web app dan koneksi, lalu tekan Segarkan.</div></div>';
+    }
+  }
 }
 function isEditing() {
   if (!$('#overlay').hidden) return true;
@@ -400,8 +410,8 @@ function pgProjectDetail(id) {
     '<button class="btn" data-a="puse" data-v="' + id + '"' + (done || !t.n ? ' disabled' : '') + '>Catat pemakaian</button>' +
     '<button class="btn" data-a="pret" data-v="' + id + '"' + (!t.n ? ' disabled' : '') + '>Kembalikan ke kantor</button>' +
     '<button class="btn" data-a="pcomp" data-v="' + id + '"' + (done ? ' disabled' : '') + '>Selesaikan proyek</button>' +
-    '<button class="btn" data-a="pedit" data-v="' + id + '">Edit info</button></div>';
-  else h += '<div class="hint" style="margin-top:8px">Arsip dari sistem lama: hanya untuk dilihat, tidak memengaruhi stok saat ini.</div>';
+    '<button class="btn" data-a="pedit" data-v="' + id + '">Edit info</button>' + (done ? '<button class="btn dng" data-a="pdel" data-v="' + id + '">Hapus proyek</button>' : '') + '</div>';
+  else h += '<div class="row sp" style="margin-top:8px"><span class="hint">Arsip dari sistem lama: hanya untuk dilihat, tidak memengaruhi stok saat ini.</span><button class="btn dng sm" data-a="pdel" data-v="' + id + '">Hapus arsip</button></div>';
   h += '</div><div class="card"><div class="pad"><h2>Material proyek</h2></div>';
   h += t.all.length ? '<div class="tw"><table><thead><tr><th>Material</th><th class="num">Dibawa</th><th class="num">Digunakan</th><th class="num">Dikembalikan</th><th class="num">Sisa di proyek</th>' + (p.legacy ? '<th class="num hide-s">Stok awal</th><th class="num hide-s">Sisa kantor akhir</th>' : '') + '</tr></thead><tbody>' +
     t.all.map(e => { const m = matById(e.mid); return '<tr><td class="name">' + esc(m ? label(m) : e.name) + '</td><td class="num">' + fmt(e.dibawa) + '</td><td class="num">' + fmt(e.digunakan) + '</td><td class="num">' + fmt(e.dikembalikan) + '</td><td class="num"><b>' + fmt(e.sisa) + '</b> <span class="small mute">' + esc(m ? m.unit : e.unit) + '</span></td>' +
@@ -440,6 +450,15 @@ function projCompleteForm(pid) {
       rows.map(e => { const m = matById(e.mid); return '<tr data-mid="' + esc(e.mid) + '" data-sisa="' + e.sisa + '"><td class="name">' + esc(m ? label(m) : e.name) + '</td><td class="num">' + fmt(e.sisa) + '</td><td class="num"><input type="number" step="any" min="0" data-k="used" value="0"></td><td class="num"><input type="number" step="any" min="0" data-k="ret" value="' + e.sisa + '"></td><td class="num" data-k="left">0</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="empty">Tidak ada material tersisa di proyek.</div>') +
     '<div class="grid" style="margin-top:12px">' + field('Tanggal selesai', '<input type="date" name="tanggal" required value="' + todayStr() + '">') + picField() + '</div>' +
     '<div class="ferr"></div><div class="row" style="margin-top:14px;justify-content:flex-end"><button type="button" class="btn" data-a="close">Batal</button><button class="btn pri">Selesaikan proyek</button></div></form>');
+}
+
+function projDeleteForm(pid) {
+  const p = projById(pid), t = projTotals(pid), left = t.all.filter(e => e.sisa > 0).length;
+  openModal('<form data-form="pdel" data-pid="' + pid + '"><h2>Hapus proyek</h2><dl class="kv"><dt>Proyek</dt><dd>' + esc(p.name) + '</dd><dt>Status</dt><dd>' + esc(p.status) + (p.legacy ? ' (arsip lama)' : '') + '</dd></dl>' +
+    '<div class="hint" style="margin-bottom:10px">' + (p.legacy ? 'Arsip lama dihapus permanen. Stok saat ini tidak berubah.' : 'Proyek dan ringkasan materialnya dihapus. <b>Histori transaksi tetap ada</b> sehingga angka stok tidak berubah.' + (left ? ' <b>Masih ada stok material di proyek ini</b>, jadi penghapusan biasa akan ditolak; kembalikan ke kantor dulu atau pilih opsi di bawah.' : '')) + '</div>' +
+    (p.legacy ? '' : '<label style="color:var(--ink);font-weight:400;display:flex;gap:8px;align-items:flex-start"><input type="checkbox" name="purge" style="margin-top:3px"> <span><b>Hapus juga semua transaksi proyek ini dari histori</b> (hanya untuk data uji coba). Stok akan kembali seperti sebelum proyek dibuat. Butuh PIN administrator.</span></label>' +
+      '<div class="grid" data-purgebox style="margin-top:10px" hidden>' + field('Disetujui oleh', '<input type="text" name="approver" maxlength="60">') + field('PIN administrator', '<input type="password" name="adminPin" autocomplete="off">') + '</div>') +
+    '<div class="ferr"></div><div class="row" style="margin-top:14px;justify-content:flex-end"><button type="button" class="btn" data-a="close">Batal</button><button class="btn dng">Hapus</button></div></form>');
 }
 
 // ---------- halaman: Stock Opname ----------
@@ -536,6 +555,7 @@ document.addEventListener('change', e => {
   else if (f === 'opcat') { F.opCat = t.value; pgOpname(); }
   else if (f && f[0] === 'h' && f !== 'hq') { const k = { hfrom: 'from', hto: 'to', hmid: 'mid', hjenis: 'jenis', hpid: 'pid' }[f]; F.hist[k] = t.value; pgHistory(); }
   else if (t.matches('[data-matsel]')) updateHint(t.closest('form'));
+  else if (t.name === 'purge') { const f = t.closest('form'), bx = $('[data-purgebox]', f); bx.hidden = !t.checked; $('[name=approver]', f).required = t.checked; $('[name=adminPin]', f).required = t.checked; }
   else if (t.name === 'tujuan') { const p = $('[name=projectId]', t.closest('form')); if (p) p.required = t.value === 'Alokasi ke Proyek'; }
 });
 document.addEventListener('click', e => {
@@ -552,6 +572,7 @@ document.addEventListener('click', e => {
   else if (a === 'pedit') projForm(projById(v));
   else if (a === 'ptr' || a === 'puse' || a === 'pret') projMoveForm(a === 'ptr' ? 'tr' : a === 'puse' ? 'use' : 'ret', v);
   else if (a === 'pcomp') projCompleteForm(v);
+  else if (a === 'pdel') projDeleteForm(v);
   else if (a === 'oadj') adjustForm(D.opname.find(o => o.id === v), b.dataset.m);
   else if (a === 'hreset') { F.hist = { from: '', to: '', mid: '', jenis: '', pid: '', q: '' }; pgHistory(); }
   else if (a === 'hcsv') exportCSV();
@@ -614,6 +635,12 @@ const SUBMIT = {
     ls.set('imsPic', o.pic); const k = 'pc:' + pid;
     await act('completeProject', { requestId: rid(k), id: pid, tanggal: o.tanggal, pic: o.pic, items: items });
     rdone(k); closeModal(); toast('Proyek selesai'); render();
+  },
+  async pdel(form) {
+    const o = fd(form), pid = form.dataset.pid, p = projById(pid), purge = o.purge === 'on';
+    if (!(await confirmBox(purge ? 'Hapus proyek BESERTA transaksinya?' : 'Hapus proyek?', [['Proyek', p.name], ['Transaksi di histori', purge ? 'IKUT DIHAPUS, stok kembali seperti sebelum proyek' : 'tetap ada'], ['Catatan', 'Tidak bisa dibatalkan']], 'Hapus'))) return;
+    const r = await act('deleteProject', { id: pid, purge: purge, approver: o.approver, adminPin: o.adminPin });
+    closeModal(); location.hash = '#project'; toast('Proyek dihapus' + (r.purged ? ' (' + r.removedTransactions + ' transaksi ikut dihapus)' : '')); render();
   },
   async opname(form) {
     const o = fd(form), items = [];
