@@ -76,6 +76,27 @@
   .pcard:last-child{border-bottom:0}
   .pcard:hover{background:var(--bg)}
   .grp td{background:var(--bg);font-size:12px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.03em}
+  .pick{max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+  .pick th{position:sticky;top:0;background:var(--card);z-index:1}
+  .pick tr.sel td{background:rgba(31,95,191,.10)}
+  .pick tr[data-prow] td.name{cursor:pointer}
+  input[type=checkbox]{width:18px;height:18px;vertical-align:middle}
+  #printArea{display:none}
+  @media print{
+    body>*:not(#printArea){display:none !important}
+    #printArea{display:block !important}
+    body{background:#fff !important;color:#000 !important;padding:0;max-width:none;font-size:11px}
+    #printArea *{color:#000 !important;background:transparent !important}
+    #printArea h1{font-size:16px;margin:0 0 2px}
+    #printArea .psub{font-size:11px;margin-bottom:8px}
+    #printArea table{width:100%;border-collapse:collapse;font-size:10.5px}
+    #printArea th,#printArea td{border:1px solid #888;padding:3px 5px;text-align:left;vertical-align:top;text-transform:none;letter-spacing:0}
+    #printArea th{font-weight:700;background:#eee !important}
+    #printArea td.r,#printArea th.r{text-align:right}
+    #printArea thead{display:table-header-group}
+    #printArea tr{page-break-inside:avoid}
+    #printArea .pfoot{margin-top:8px;font-size:10px}
+  }
   @media (max-width:640px){.hide-s{display:none}body{padding:12px 10px 60px}td input[type=number]{width:70px}}
 </style>
 </head>
@@ -89,6 +110,8 @@
 <div id="overlay" hidden><div class="modal" id="mbox"></div></div>
 <div id="cbox" hidden><div class="modal" id="cbody"></div></div>
 <div id="toast"></div>
+<div id="printArea"></div>
+<style id="pgstyle"></style>
 
 <script>
 // ====== ISI DENGAN URL WEB APP DARI APPS SCRIPT (berakhiran /exec) ======
@@ -115,6 +138,8 @@ const JENIS = ['Stock In', 'Stock Out', 'Project Transfer', 'Project Return', 'P
 
 let D = null, page = 'dashboard', arg = '';
 const F = { master: { cat: 'all', q: '', st: 'all', arch: false }, hist: { from: '', to: '', mid: '', jenis: '', pid: '', q: '' }, proj: { st: 'all' }, opCat: 'all' };
+const TF = { in: { from: '', to: '' }, out: { from: '', to: '' } };
+const HSEL = new Set();
 const reqs = {};
 const rid = k => reqs[k] || (reqs[k] = uid());
 const rdone = k => { delete reqs[k]; };
@@ -138,7 +163,7 @@ const label = m => m.name + (m.spec ? ' — ' + m.spec : '');
 function setStatus(t, cls) { const s = $('#st'); s.textContent = t; s.className = 'status' + (cls ? ' ' + cls : ''); }
 function stamp() { const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
 let toastT;
-function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2600); }
+function toast(t, ms) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), ms || 2600); }
 function openModal(html, wide) { const b = $('#mbox'); b.className = 'modal' + (wide ? ' wide' : ''); b.innerHTML = html; $('#overlay').hidden = false; document.body.classList.add('noscroll'); const f = $('input:not([type=hidden]):not([readonly]),select', b); if (f) f.focus(); }
 function closeModal() { $('#overlay').hidden = true; $('#mbox').innerHTML = ''; document.body.classList.remove('noscroll'); }
 function confirmBox(title, pairs, okLabel) {
@@ -216,7 +241,8 @@ async function load(silent) {
 function isEditing() {
   if (!$('#overlay').hidden) return true;
   const a = document.activeElement;
-  return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && $('#app').contains(a));
+  if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && $('#app').contains(a)) return true;
+  return $$('#app [data-pick]:checked').length > 0;
 }
 
 // ---------- komponen form ----------
@@ -295,14 +321,17 @@ function pgDashboard() {
 }
 
 // ---------- halaman: Master Inventory ----------
-function pgMaster() {
+function masterList() {
   const f = F.master, q = f.q.toLowerCase();
-  const list = D.materials.filter(m => (f.arch || m.active) && (f.cat === 'all' || m.cat === f.cat) && (f.st === 'all' || stat(m) === f.st) &&
+  return D.materials.filter(m => (f.arch || m.active) && (f.cat === 'all' || m.cat === f.cat) && (f.st === 'all' || stat(m) === f.st) &&
     (!q || (m.name + ' ' + m.spec + ' ' + m.loc).toLowerCase().includes(q)))
     .sort((a, b) => a.cat === b.cat ? a.no - b.no : (a.cat === 'BHP Atas' ? -1 : 1));
+}
+function pgMaster() {
+  const f = F.master, list = masterList();
   let h = '<div class="card pad"><div class="row sp"><div class="chips">' +
     [['all', 'Semua'], ['BHP Atas', 'BHP Atas'], ['BHP Bawah', 'BHP Bawah']].map(c => '<button class="chip' + (f.cat === c[0] ? ' on' : '') + '" data-a="mcat" data-v="' + c[0] + '">' + c[1] + '</button>').join('') +
-    '</div><button class="btn pri" data-a="madd">+ Tambah material</button></div>' +
+    '</div><div class="row"><button class="btn" data-a="pdf" data-v="master">Export PDF</button><button class="btn pri" data-a="madd">+ Tambah material</button></div></div>' +
     '<div class="grid" style="margin-top:10px">' +
     field('Cari', '<input type="text" data-f="mq" value="' + esc(f.q) + '" placeholder="Nama, spesifikasi, lokasi">') +
     field('Status stok', '<select data-f="mst"><option value="all">Semua</option>' + Object.keys(ST).map(k => '<option value="' + k + '"' + (f.st === k ? ' selected' : '') + '>' + ST[k][0] + '</option>').join('') + '</select>') +
@@ -345,38 +374,103 @@ function masterForm(m) {
     (isNew || !lockAwal ? '' : '<div class="hint" style="margin-top:8px">Material yang sudah punya transaksi tidak bisa dihapus agar histori tetap utuh; gunakan Arsipkan.</div>') + '</form>');
 }
 
+// ---------- pilih banyak material (Stock In / Stock Out) ----------
+function pickBox(mode) {
+  const ms = activeMats().slice().sort((a, b) => a.cat === b.cat ? a.no - b.no : (a.cat === 'BHP Atas' ? -1 : 1));
+  let h = '<div class="row sp" style="margin-bottom:8px"><div class="row" style="flex:1">' +
+    '<input type="text" data-pickq placeholder="Cari material…" style="max-width:260px">' +
+    '<select data-pcat style="width:auto"><option value="">Semua kategori</option><option>BHP Atas</option><option>BHP Bawah</option></select></div>' +
+    '<span class="small mute" data-pickcount>0 material dipilih</span></div>';
+  h += '<div class="pick"><table><thead><tr><th class="c"></th><th>Material</th><th class="num">Jumlah</th></tr></thead><tbody>';
+  ms.forEach(m => {
+    const off = mode === 'out' && m.kantor <= 0;
+    h += '<tr data-prow data-mid="' + esc(m.id) + '" data-cat="' + esc(m.cat) + '" data-text="' + esc(label(m).toLowerCase()) + '">' +
+      '<td class="c"><input type="checkbox" data-pick' + (off ? ' disabled' : '') + '></td>' +
+      '<td class="name">' + esc(label(m)) + '<div class="small mute">' + esc(m.cat) + ' · stok kantor ' + fmt(m.kantor) + ' ' + esc(m.unit) + (off ? ' (habis)' : '') + '</div></td>' +
+      '<td class="num"><input type="number" data-qty step="any" min="0" inputmode="decimal" disabled> <span class="small mute">' + esc(m.unit) + '</span></td></tr>';
+  });
+  if (!ms.length) h += '<tr><td colspan="3" class="empty">Belum ada material aktif.</td></tr>';
+  return h + '</tbody></table></div><div class="hint">Centang material yang dipilih, lalu isi jumlah masing-masing.</div>';
+}
+function pickCount(form) { const n = $$('[data-pick]:checked', form).length, c = $('[data-pickcount]', form); if (c) c.textContent = n + ' material dipilih'; }
+function pickToggle(cb) {
+  const tr = cb.closest('tr'), q = $('[data-qty]', tr);
+  q.disabled = !cb.checked; tr.classList.toggle('sel', cb.checked);
+  if (cb.checked) q.focus(); else q.value = '';
+  pickCount(cb.closest('form'));
+}
+function pickFilter(form) {
+  const q = $('[data-pickq]', form).value.toLowerCase().trim(), cat = $('[data-pcat]', form).value;
+  $$('tr[data-prow]', form).forEach(tr => { tr.hidden = !((!q || tr.dataset.text.includes(q)) && (!cat || tr.dataset.cat === cat)); });
+}
+function pickItems(form) {
+  const items = [];
+  $$('tr[data-prow]', form).forEach(tr => { if ($('[data-pick]', tr).checked) items.push({ materialId: tr.dataset.mid, qty: $('[data-qty]', tr).value }); });
+  return items;
+}
+
+// ---------- daftar Stock In / Stock Out (edit, hapus, PDF) ----------
+function txFiltered(kind) {
+  const f = TF[kind];
+  return (kind === 'in' ? D.stockin : D.stockout).filter(r => (!f.from || r.tanggal >= f.from) && (!f.to || r.tanggal <= f.to));
+}
+function txListInner(kind) {
+  const isIn = kind === 'in', f = TF[kind], rows = txFiltered(kind);
+  let h = '<div class="pad"><div class="row sp"><h2 style="margin:0">' + (isIn ? 'Barang masuk' : 'Barang keluar') + '</h2><button class="btn sm pri" data-a="pdf" data-v="' + kind + '">Export PDF</button></div>' +
+    '<div class="grid" style="margin-top:10px">' +
+    field('Dari tanggal', '<input type="date" data-f="tfrom" data-kind="' + kind + '" value="' + esc(f.from) + '">') +
+    field('Sampai tanggal', '<input type="date" data-f="tto" data-kind="' + kind + '" value="' + esc(f.to) + '">') + '</div>' +
+    '<div class="small mute" style="margin-top:6px">' + rows.length + ' transaksi' + (rows.length > 50 ? ' (50 terbaru ditampilkan; PDF memuat semuanya)' : '') + '</div></div>';
+  if (!rows.length) return h + '<div class="empty">Tidak ada data.</div>';
+  return h + '<div class="tw"><table><thead><tr><th>Tanggal</th><th>Material</th><th class="num">Jumlah</th><th>' + (isIn ? 'Sumber' : 'Tujuan') + '</th><th class="hide-s">' + (isIn ? 'Supplier' : 'Proyek') + '</th><th class="hide-s">PIC</th><th></th></tr></thead><tbody>' +
+    rows.slice(0, 50).map(r => '<tr><td>' + esc(r.tanggal) + '</td><td class="name">' + esc(r.nama) + '</td><td class="num">' + fmt(r.qty) + ' ' + esc(r.unit) + '</td><td>' + esc(isIn ? r.sumber : r.tujuan) + '</td><td class="hide-s">' + esc(isIn ? r.supplier : r.proyek) + '</td><td class="hide-s">' + esc(r.pic) + '</td>' +
+      '<td class="num">' + (r.trx ? '<button class="btn sm" data-a="' + kind + 'edit" data-v="' + esc(r.trx) + '">Edit</button> <button class="btn sm dng" data-a="' + kind + 'del" data-v="' + esc(r.trx) + '">Hapus</button>' : '') + '</td></tr>').join('') + '</tbody></table></div>';
+}
+
 // ---------- halaman: Stock In ----------
 function pgIn() {
-  let h = '<div class="card pad"><h2>Catat barang masuk</h2><form data-form="in"><div class="grid">' +
+  const h = '<div class="card pad"><h2>Catat barang masuk</h2><form data-form="in"><div class="grid">' +
     field('Tanggal penerimaan', '<input type="date" name="tanggal" required value="' + todayStr() + '">') +
-    field('Nama material', matSelect('materialId'), 'full') +
-    field('Jumlah', '<input type="number" name="qty" step="any" min="0" required inputmode="decimal"><div class="hint" data-hint></div>') +
-    field('Satuan', '<input type="text" name="unit" readonly>') +
     field('Sumber barang', '<select name="sumber">' + opts(SUMBER) + '</select>') +
     field('Supplier', '<input type="text" name="supplier" maxlength="80">') + picField() +
-    field('Catatan', '<input type="text" name="note" maxlength="150">', 'full') +
-    '</div><div class="ferr"></div><div style="margin-top:12px"><button class="btn pri">Simpan barang masuk</button></div></form></div>';
-  h += '<div class="card"><div class="pad"><h2>Barang masuk terbaru</h2></div>';
-  h += D.stockin.length ? '<div class="tw"><table><thead><tr><th>Tanggal</th><th>Material</th><th class="num">Jumlah</th><th>Sumber</th><th class="hide-s">Supplier</th><th class="hide-s">PIC</th></tr></thead><tbody>' +
-    D.stockin.slice(0, 15).map(r => '<tr><td>' + esc(r.tanggal) + '</td><td class="name">' + esc(r.nama) + '</td><td class="num">' + fmt(r.qty) + ' ' + esc(r.unit) + '</td><td>' + esc(r.sumber) + '</td><td class="hide-s">' + esc(r.supplier) + '</td><td class="hide-s">' + esc(r.pic) + '</td></tr>').join('') + '</tbody></table></div>' : '<div class="empty">Belum ada barang masuk.</div>';
-  $('#app').innerHTML = h + '</div>';
+    field('Catatan', '<input type="text" name="note" maxlength="150">', 'full') + '</div>' +
+    '<h3 style="margin-top:14px">Pilih material</h3>' + pickBox('in') +
+    '<div class="ferr"></div><div style="margin-top:12px"><button class="btn pri">Simpan barang masuk</button></div></form></div>';
+  $('#app').innerHTML = h + '<div class="card" id="txlist">' + txListInner('in') + '</div>';
+}
+function editInForm(r) {
+  openModal('<form data-form="editin" data-trx="' + esc(r.trx) + '"><h2>Edit barang masuk</h2><div class="small mute" style="margin-bottom:10px">' + esc(r.id) + ' · ' + esc(r.nama) + '. Material tidak bisa diganti; hapus lalu catat ulang bila salah material.</div><div class="grid">' +
+    field('Tanggal penerimaan', '<input type="date" name="tanggal" required value="' + esc(r.tanggal) + '">') +
+    field('Jumlah (' + esc(r.unit) + ')', '<input type="number" name="qty" step="any" min="0" required inputmode="decimal" value="' + esc(r.qty) + '">') +
+    field('Sumber barang', '<select name="sumber">' + opts(SUMBER, r.sumber) + '</select>') +
+    field('Supplier', '<input type="text" name="supplier" maxlength="80" value="' + esc(r.supplier) + '">') +
+    field('PIC', '<input type="text" name="pic" required maxlength="60" value="' + esc(r.pic) + '">') +
+    field('Catatan', '<input type="text" name="note" maxlength="150" value="' + esc(r.note) + '">', 'full') +
+    '</div><div class="ferr"></div><div class="row" style="margin-top:14px;justify-content:flex-end"><button type="button" class="btn" data-a="close">Batal</button><button class="btn pri">Simpan</button></div></form>');
 }
 
 // ---------- halaman: Stock Out ----------
 function pgOut() {
-  let h = '<div class="card pad"><h2>Catat barang keluar</h2><form data-form="out"><div class="grid">' +
+  const h = '<div class="card pad"><h2>Catat barang keluar</h2><form data-form="out"><div class="grid">' +
     field('Tanggal pengeluaran', '<input type="date" name="tanggal" required value="' + todayStr() + '">') +
-    field('Nama material', matSelect('materialId'), 'full') +
-    field('Jumlah', '<input type="number" name="qty" step="any" min="0" required inputmode="decimal"><div class="hint" data-hint></div>') +
-    field('Satuan', '<input type="text" name="unit" readonly>') +
     field('Tujuan penggunaan', '<select name="tujuan">' + opts(TUJUAN) + '</select><div class="hint">“Alokasi ke Proyek” menjadi stok proyek, bukan langsung dianggap habis.</div>') +
     field('Nama proyek', projSelect('projectId', { blank: '— tanpa proyek —' }) + '<div class="hint">Wajib untuk Alokasi ke Proyek.</div>') + picField() +
-    field('Keterangan', '<input type="text" name="note" maxlength="150">', 'full') +
-    '</div><div class="ferr"></div><div style="margin-top:12px"><button class="btn pri">Simpan barang keluar</button></div></form></div>';
-  h += '<div class="card"><div class="pad"><h2>Barang keluar terbaru</h2></div>';
-  h += D.stockout.length ? '<div class="tw"><table><thead><tr><th>Tanggal</th><th>Material</th><th class="num">Jumlah</th><th>Tujuan</th><th class="hide-s">Proyek</th><th class="hide-s">PIC</th></tr></thead><tbody>' +
-    D.stockout.slice(0, 15).map(r => '<tr><td>' + esc(r.tanggal) + '</td><td class="name">' + esc(r.nama) + '</td><td class="num">' + fmt(r.qty) + ' ' + esc(r.unit) + '</td><td>' + esc(r.tujuan) + '</td><td class="hide-s">' + esc(r.proyek) + '</td><td class="hide-s">' + esc(r.pic) + '</td></tr>').join('') + '</tbody></table></div>' : '<div class="empty">Belum ada barang keluar.</div>';
-  $('#app').innerHTML = h + '</div>';
+    field('Keterangan', '<input type="text" name="note" maxlength="150">', 'full') + '</div>' +
+    '<h3 style="margin-top:14px">Pilih material</h3>' + pickBox('out') +
+    '<div class="ferr"></div><div style="margin-top:12px"><button class="btn pri">Simpan barang keluar</button></div></form></div>';
+  $('#app').innerHTML = h + '<div class="card" id="txlist">' + txListInner('out') + '</div>';
+}
+function editOutForm(r) {
+  const alok = r.tujuan === 'Alokasi ke Proyek';
+  openModal('<form data-form="editout" data-trx="' + esc(r.trx) + '"><h2>Edit barang keluar</h2><div class="small mute" style="margin-bottom:10px">' + esc(r.id) + ' · ' + esc(r.nama) + '. Material tidak bisa diganti; hapus lalu catat ulang bila salah material.</div><div class="grid">' +
+    field('Tanggal pengeluaran', '<input type="date" name="tanggal" required value="' + esc(r.tanggal) + '">') +
+    field('Jumlah (' + esc(r.unit) + ')', '<input type="number" name="qty" step="any" min="0" required inputmode="decimal" value="' + esc(r.qty) + '">') +
+    (alok
+      ? field('Tujuan penggunaan', '<input type="text" value="' + esc(r.tujuan) + '" readonly>') + field('Nama proyek', '<input type="text" value="' + esc(r.proyek) + '" readonly><div class="hint">Alokasi tidak bisa dipindah proyek; hapus lalu catat ulang bila salah proyek.</div>')
+      : field('Tujuan penggunaan', '<select name="tujuan">' + opts(TUJUAN.filter(x => x !== 'Alokasi ke Proyek'), r.tujuan) + '</select>') + field('Nama proyek', projSelect('projectId', { all: true, blank: '— tanpa proyek —', sel: r.pid }))) +
+    field('PIC', '<input type="text" name="pic" required maxlength="60" value="' + esc(r.pic) + '">') +
+    field('Keterangan', '<input type="text" name="note" maxlength="150" value="' + esc(r.note) + '">', 'full') +
+    '</div><div class="ferr"></div><div class="row" style="margin-top:14px;justify-content:flex-end"><button type="button" class="btn" data-a="close">Batal</button><button class="btn pri">Simpan</button></div></form>');
 }
 
 // ---------- halaman: Project ----------
@@ -497,23 +591,30 @@ function histFiltered() {
   return D.history.filter(h => (!f.from || h.tanggal >= f.from) && (!f.to || h.tanggal <= f.to) && (!f.mid || h.mid === f.mid) && (!f.jenis || h.jenis === f.jenis) &&
     (!f.pid || h.pid === f.pid) && (!q || (h.nama + ' ' + h.spec + ' ' + h.ket + ' ' + h.id + ' ' + h.pic).toLowerCase().includes(q)));
 }
-function histTable(rows, compact) {
+function histTable(rows, compact, sel) {
   if (!rows.length) return '<div class="empty">Tidak ada transaksi.</div>';
-  return '<div class="tw"><table><thead><tr><th>ID</th><th>Tanggal</th><th>Jenis</th><th>Material</th><th class="num">Jumlah</th>' + (compact ? '' : '<th class="hide-s">Asal</th><th class="hide-s">Tujuan</th>') + '<th class="hide-s">Proyek</th><th class="hide-s">PIC</th>' + (compact ? '' : '<th class="hide-s">Keterangan</th>') + '</tr></thead><tbody>' +
-    rows.map(h => '<tr><td class="small">' + esc(h.id) + '</td><td>' + esc(h.tanggal) + '<div class="small mute hide-s">' + esc(h.waktu.slice(11, 16)) + '</div></td><td><span class="badge b-mute">' + esc(h.jenis) + '</span></td><td class="name">' + esc(h.nama) + (h.spec ? '<div class="small mute">' + esc(h.spec) + '</div>' : '') + '</td><td class="num">' + (h.qty > 0 && h.jenis === 'Stock Adjustment' ? '+' : '') + fmt(h.qty) + ' ' + esc(h.unit) + '</td>' +
-      (compact ? '' : '<td class="hide-s">' + esc(h.asal) + '</td><td class="hide-s">' + esc(h.tujuan) + '</td>') + '<td class="hide-s">' + esc(h.proyek) + '</td><td class="hide-s">' + esc(h.pic) + '</td>' + (compact ? '' : '<td class="hide-s">' + esc(h.ket) + '</td>') + '</tr>').join('') + '</tbody></table></div>';
+  return '<div class="tw"><table><thead><tr>' + (sel ? '<th class="c"><input type="checkbox" data-hall title="Pilih semua yang tampil"></th>' : '') + '<th>ID</th><th>Tanggal</th><th>Jenis</th><th>Material</th><th class="num">Jumlah</th>' + (compact ? '' : '<th class="hide-s">Asal</th><th class="hide-s">Tujuan</th>') + '<th class="hide-s">Proyek</th><th class="hide-s">PIC</th>' + (compact ? '' : '<th class="hide-s">Keterangan</th>') + (sel ? '<th></th>' : '') + '</tr></thead><tbody>' +
+    rows.map(h => '<tr>' + (sel ? '<td class="c"><input type="checkbox" data-hsel value="' + esc(h.id) + '"' + (HSEL.has(h.id) ? ' checked' : '') + '></td>' : '') + '<td class="small">' + esc(h.id) + '</td><td>' + esc(h.tanggal) + '<div class="small mute hide-s">' + esc(h.waktu.slice(11, 16)) + '</div></td><td><span class="badge b-mute">' + esc(h.jenis) + '</span></td><td class="name">' + esc(h.nama) + (h.spec ? '<div class="small mute">' + esc(h.spec) + '</div>' : '') + '</td><td class="num">' + (h.qty > 0 && h.jenis === 'Stock Adjustment' ? '+' : '') + fmt(h.qty) + ' ' + esc(h.unit) + '</td>' +
+      (compact ? '' : '<td class="hide-s">' + esc(h.asal) + '</td><td class="hide-s">' + esc(h.tujuan) + '</td>') + '<td class="hide-s">' + esc(h.proyek) + '</td><td class="hide-s">' + esc(h.pic) + '</td>' + (compact ? '' : '<td class="hide-s">' + esc(h.ket) + '</td>') +
+      (sel ? '<td class="num"><button class="btn sm dng" data-a="hdel" data-v="' + esc(h.id) + '">Hapus</button></td>' : '') + '</tr>').join('') + '</tbody></table></div>';
+}
+function updateHsel() {
+  const b = $('[data-a=hdelsel]'); if (b) { b.textContent = 'Hapus terpilih (' + HSEL.size + ')'; b.disabled = !HSEL.size; }
+  const all = $('[data-hall]'), cs = $$('[data-hsel]'); if (all) all.checked = cs.length > 0 && cs.every(c => c.checked);
 }
 function pgHistory() {
-  const f = F.hist, rows = histFiltered();
+  const f = F.hist, rows = histFiltered(), shown = rows.slice(0, 300), ids = new Set(rows.map(r => r.id));
+  Array.from(HSEL).forEach(id => { if (!ids.has(id)) HSEL.delete(id); });
   let h = '<div class="card pad"><div class="grid">' +
     field('Dari tanggal', '<input type="date" data-f="hfrom" value="' + esc(f.from) + '">') + field('Sampai tanggal', '<input type="date" data-f="hto" value="' + esc(f.to) + '">') +
     field('Material', '<select data-f="hmid"><option value="">Semua</option>' + D.materials.map(m => '<option value="' + esc(m.id) + '"' + (f.mid === m.id ? ' selected' : '') + '>' + esc(label(m)) + '</option>').join('') + '</select>') +
     field('Jenis transaksi', '<select data-f="hjenis"><option value="">Semua</option>' + JENIS.map(j => '<option' + (f.jenis === j ? ' selected' : '') + '>' + j + '</option>').join('') + '</select>') +
     field('Proyek', '<select data-f="hpid"><option value="">Semua</option>' + D.projects.filter(p => !p.legacy).map(p => '<option value="' + esc(p.id) + '"' + (f.pid === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('') + '</select>') +
     field('Cari', '<input type="text" data-f="hq" value="' + esc(f.q) + '" placeholder="Nama material, ID, PIC, keterangan">') +
-    '</div><div class="row sp" style="margin-top:10px"><span class="small mute">' + rows.length + ' transaksi' + (rows.length > 300 ? ' (300 teratas ditampilkan; export memuat semuanya)' : '') + '</span><div class="row"><button class="btn sm" data-a="hreset">Reset filter</button><button class="btn sm pri" data-a="hcsv">Export CSV (Excel)</button></div></div></div>';
-  h += '<div class="card">' + histTable(rows.slice(0, 300), false) + '</div>';
+    '</div><div class="row sp" style="margin-top:10px"><span class="small mute">' + rows.length + ' transaksi' + (rows.length > 300 ? ' (300 teratas ditampilkan; export memuat semuanya)' : '') + '</span><div class="row"><button class="btn sm" data-a="hreset">Reset filter</button><button class="btn sm pri" data-a="hcsv">Export CSV (Excel)</button><button class="btn sm pri" data-a="pdf" data-v="history">Export PDF</button><button class="btn sm dng" data-a="hdelsel"' + (HSEL.size ? '' : ' disabled') + '>Hapus terpilih (' + HSEL.size + ')</button></div></div></div>';
+  h += '<div class="card">' + histTable(shown, false, true) + '</div>';
   $('#app').innerHTML = h;
+  updateHsel();
 }
 function exportCSV() {
   const rows = histFiltered(), cols = ['id', 'waktu', 'tanggal', 'jenis', 'nama', 'spec', 'qty', 'unit', 'asal', 'tujuan', 'proyek', 'pic', 'ket'];
@@ -522,6 +623,57 @@ function exportCSV() {
   const csv = '﻿' + [head.map(q).join(',')].concat(rows.map(r => cols.map(c => q(r[c])).join(','))).join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
   a.download = 'histori-transaksi-' + todayStr() + '.csv'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+// ---------- hapus transaksi ----------
+async function delTxns(ids, title, pairs) {
+  pairs.push(['Catatan', 'Stok dihitung ulang dari histori. Salinan transaksi disimpan di sheet TRANSACTION_DELETED.']);
+  if (!(await confirmBox(title, pairs, 'Hapus'))) return;
+  try {
+    const r = await act('deleteTxn', { ids: ids });
+    ids.forEach(i => HSEL.delete(i));
+    toast((r.removed || ids.length) + ' transaksi dihapus'); render();
+  } catch (e) { toast(e.message, 6000); }
+}
+
+// ---------- export PDF (lewat dialog cetak browser: pilih "Simpan sebagai PDF") ----------
+function printReport(title, sub, head, rows, o) {
+  o = o || {};
+  if (!rows.length) { toast('Tidak ada data untuk di-export'); return; }
+  const al = o.aligns || [], now = new Date(), pa = $('#printArea');
+  pa.innerHTML = '<h1>' + esc(title) + '</h1><div class="psub">' + esc(sub) + '</div><table><thead><tr>' +
+    head.map((x, i) => '<th' + (al[i] === 'r' ? ' class="r"' : '') + '>' + esc(x) + '</th>').join('') + '</tr></thead><tbody>' +
+    rows.map(r => '<tr>' + r.map((x, i) => '<td' + (al[i] === 'r' ? ' class="r"' : '') + '>' + esc(x) + '</td>').join('') + '</tr>').join('') +
+    '</tbody></table><div class="pfoot">Inventory Enercentrik · dicetak ' + todayStr() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + '</div>';
+  $('#pgstyle').textContent = '@page{size:A4 ' + (o.landscape ? 'landscape' : 'portrait') + ';margin:12mm}';
+  const old = document.title;
+  document.title = (o.file || 'laporan') + '-' + todayStr();
+  const done = () => { document.title = old; pa.innerHTML = ''; window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  toast('Di dialog cetak, pilih “Simpan sebagai PDF”', 4000);
+  setTimeout(() => window.print(), 250);
+}
+const periodText = f => 'Periode ' + (f.from || 'awal') + ' s/d ' + (f.to || 'sekarang');
+function exportPdf(kind) {
+  if (kind === 'master') {
+    const list = masterList();
+    printReport('Stok Akhir Inventory', 'Posisi per ' + todayStr() + ' · ' + list.length + ' material',
+      ['Kategori', 'Material', 'Spesifikasi', 'Satuan', 'Stok kantor', 'Stok proyek', 'Total', 'Min', 'Max', 'Status', 'Lokasi'],
+      list.map(m => [m.cat, m.name, m.spec, m.unit, fmt(m.kantor), fmt(m.proyek), fmt(m.total), fmt(m.min), fmt(m.max), m.active ? ST[stat(m)][0] : 'Diarsipkan', m.loc]),
+      { aligns: ['', '', '', '', 'r', 'r', 'r', 'r', 'r', '', ''], landscape: true, file: 'stok-akhir' });
+  } else if (kind === 'history') {
+    const f = F.hist, rows = histFiltered();
+    printReport('Histori Transaksi', periodText(f) + (f.jenis ? ' · ' + f.jenis : '') + ' · ' + rows.length + ' transaksi',
+      ['Tanggal', 'ID', 'Jenis', 'Material', 'Jumlah', 'Asal', 'Tujuan', 'Proyek', 'PIC', 'Keterangan'],
+      rows.map(h => [h.tanggal, h.id, h.jenis, h.nama + (h.spec ? ' — ' + h.spec : ''), (h.qty > 0 && h.jenis === 'Stock Adjustment' ? '+' : '') + fmt(h.qty) + ' ' + h.unit, h.asal, h.tujuan, h.proyek, h.pic, h.ket]),
+      { aligns: ['', '', '', '', 'r', '', '', '', '', ''], landscape: true, file: 'histori-transaksi' });
+  } else {
+    const isIn = kind === 'in', rows = txFiltered(kind);
+    printReport(isIn ? 'Laporan Barang Masuk' : 'Laporan Barang Keluar', periodText(TF[kind]) + ' · ' + rows.length + ' transaksi',
+      ['Tanggal', 'ID', 'Material', 'Jumlah', isIn ? 'Sumber' : 'Tujuan', isIn ? 'Supplier' : 'Proyek', 'PIC', isIn ? 'Catatan' : 'Keterangan'],
+      rows.map(r => [r.tanggal, r.id, r.nama, fmt(r.qty) + ' ' + r.unit, isIn ? r.sumber : r.tujuan, isIn ? r.supplier : r.proyek, r.pic, r.note]),
+      { aligns: ['', '', '', 'r', '', '', '', ''], landscape: true, file: isIn ? 'barang-masuk' : 'barang-keluar' });
+  }
 }
 
 // ---------- render & routing ----------
@@ -543,14 +695,20 @@ window.addEventListener('hashchange', route);
 // ---------- event: filter & klik ----------
 document.addEventListener('input', e => {
   const t = e.target;
-  if (t.dataset.f === 'mq') { F.master.q = t.value; const pos = t.selectionStart; pgMaster(); const n = $('[data-f=mq]'); n.focus(); n.setSelectionRange(pos, pos); }
+  if (t.dataset.pickq !== undefined) pickFilter(t.closest('form'));
+  else if (t.dataset.f === 'mq') { F.master.q = t.value; const pos = t.selectionStart; pgMaster(); const n = $('[data-f=mq]'); n.focus(); n.setSelectionRange(pos, pos); }
   else if (t.dataset.f === 'hq') { F.hist.q = t.value; const pos = t.selectionStart; pgHistory(); const n = $('[data-f=hq]'); n.focus(); n.setSelectionRange(pos, pos); }
   else if (t.dataset.k === 'fisik') { const tr = t.closest('tr'), sel = $('[data-k=sel]', tr); if (t.value === '') { sel.textContent = '—'; sel.style.color = ''; return; } const d = Math.round((Number(t.value) - Number(tr.dataset.sis)) * 10000) / 10000; sel.textContent = (d > 0 ? '+' : '') + fmt(d); sel.style.color = d === 0 ? 'var(--ok)' : d > 0 ? 'var(--info)' : 'var(--warn)'; }
   else if (t.dataset.k === 'used' || t.dataset.k === 'ret') { const tr = t.closest('tr'), u = Number($('[data-k=used]', tr).value) || 0, r = Number($('[data-k=ret]', tr).value) || 0, left = Math.round((Number(tr.dataset.sisa) - u - r) * 10000) / 10000; const c = $('[data-k=left]', tr); c.textContent = fmt(left); c.style.color = left < 0 ? 'var(--bad)' : ''; }
 });
 document.addEventListener('change', e => {
   const t = e.target, f = t.dataset.f;
-  if (f === 'mst') { F.master.st = t.value; pgMaster(); }
+  if (t.dataset.pick !== undefined) pickToggle(t);
+  else if (t.dataset.pcat !== undefined) pickFilter(t.closest('form'));
+  else if (t.dataset.hsel !== undefined) { if (t.checked) HSEL.add(t.value); else HSEL.delete(t.value); updateHsel(); }
+  else if (t.dataset.hall !== undefined) { $$('[data-hsel]').forEach(c => { c.checked = t.checked; if (t.checked) HSEL.add(c.value); else HSEL.delete(c.value); }); updateHsel(); }
+  else if (f === 'tfrom' || f === 'tto') { TF[t.dataset.kind][f === 'tfrom' ? 'from' : 'to'] = t.value; $('#txlist').innerHTML = txListInner(t.dataset.kind); }
+  else if (f === 'mst') { F.master.st = t.value; pgMaster(); }
   else if (f === 'march') { F.master.arch = t.checked; pgMaster(); }
   else if (f === 'opcat') { F.opCat = t.value; pgOpname(); }
   else if (f && f[0] === 'h' && f !== 'hq') { const k = { hfrom: 'from', hto: 'to', hmid: 'mid', hjenis: 'jenis', hpid: 'pid' }[f]; F.hist[k] = t.value; pgHistory(); }
@@ -559,6 +717,8 @@ document.addEventListener('change', e => {
   else if (t.name === 'tujuan') { const p = $('[name=projectId]', t.closest('form')); if (p) p.required = t.value === 'Alokasi ke Proyek'; }
 });
 document.addEventListener('click', e => {
+  const nm = e.target.closest('tr[data-prow] td.name');
+  if (nm) { const cb = $('[data-pick]', nm.parentNode); if (cb && !cb.disabled) { cb.checked = !cb.checked; pickToggle(cb); } return; }
   const b = e.target.closest('[data-a]'); if (!b) { if (e.target === $('#overlay')) closeModal(); return; }
   const a = b.dataset.a, v = b.dataset.v;
   if (a === 'close') closeModal();
@@ -576,10 +736,18 @@ document.addEventListener('click', e => {
   else if (a === 'oadj') adjustForm(D.opname.find(o => o.id === v), b.dataset.m);
   else if (a === 'hreset') { F.hist = { from: '', to: '', mid: '', jenis: '', pid: '', q: '' }; pgHistory(); }
   else if (a === 'hcsv') exportCSV();
+  else if (a === 'pdf') exportPdf(v);
+  else if (a === 'inedit' || a === 'outedit') { const r = (a === 'inedit' ? D.stockin : D.stockout).find(x => x.trx === v); if (r) (a === 'inedit' ? editInForm : editOutForm)(r); }
+  else if (a === 'indel' || a === 'outdel') { const r = (a === 'indel' ? D.stockin : D.stockout).find(x => x.trx === v); if (r) delTxns([v], a === 'indel' ? 'Hapus barang masuk?' : 'Hapus barang keluar?', [['ID', r.id], ['Tanggal', r.tanggal], ['Material', r.nama], ['Jumlah', fmt(r.qty) + ' ' + r.unit], ['Proyek', r.proyek]]); }
+  else if (a === 'hdel') { const x = D.history.find(h => h.id === v); if (x) delTxns([v], 'Hapus transaksi?', [['ID', x.id], ['Jenis', x.jenis], ['Material', x.nama], ['Jumlah', fmt(x.qty) + ' ' + x.unit], ['Tanggal', x.tanggal], ['Proyek', x.proyek]]); }
+  else if (a === 'hdelsel') { if (HSEL.size) delTxns(Array.from(HSEL), 'Hapus ' + HSEL.size + ' transaksi?', [['Jumlah transaksi', String(HSEL.size)]]); }
 });
 $('#btnRefresh').addEventListener('click', () => load());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) load(true); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#overlay').hidden && $('#cbox').hidden) closeModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('#overlay').hidden && $('#cbox').hidden) closeModal();
+  if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-pickq]')) e.preventDefault();
+});
 
 // ---------- event: submit form ----------
 const SUBMIT = {
@@ -592,21 +760,43 @@ const SUBMIT = {
     closeModal(); toast('Material tersimpan'); render();
   },
   async 'in'(form) {
-    const o = fd(form), m = matById(o.materialId); if (!m) throw new Error('Pilih material');
-    if (!(await confirmBox('Simpan barang masuk?', [['Tanggal', o.tanggal], ['Material', label(m)], ['Jumlah', fmt(o.qty) + ' ' + m.unit], ['Sumber', o.sumber], ['Supplier', o.supplier], ['PIC', o.pic], ['Stok kantor jadi', fmt(m.kantor + Number(o.qty)) + ' ' + m.unit]]))) return;
-    ls.set('imsPic', o.pic); const k = 'in';
-    await act('stockIn', { requestId: rid(k), materialId: o.materialId, qty: o.qty, tanggal: o.tanggal, sumber: o.sumber, supplier: o.supplier, pic: o.pic, note: o.note });
-    rdone(k); toast('Barang masuk tersimpan'); render();
+    const o = fd(form), items = pickItems(form);
+    if (!items.length) throw new Error('Centang minimal satu material');
+    const lines = items.map(it => {
+      const m = matById(it.materialId), q = Number(it.qty);
+      if (!(q > 0)) throw new Error('Isi jumlah untuk "' + label(m) + '"');
+      return [label(m), '+' + fmt(q) + ' ' + m.unit + ' → stok jadi ' + fmt(m.kantor + q)];
+    });
+    if (!(await confirmBox('Simpan ' + items.length + ' barang masuk?', [['Tanggal', o.tanggal], ['Sumber', o.sumber], ['Supplier', o.supplier], ['PIC', o.pic]].concat(lines)))) return;
+    ls.set('imsPic', o.pic); const k = 'in:' + JSON.stringify([o.tanggal, o.sumber, items]);
+    await act('stockInBatch', { requestId: rid(k), items: items, tanggal: o.tanggal, sumber: o.sumber, supplier: o.supplier, pic: o.pic, note: o.note });
+    rdone(k); toast(items.length + ' barang masuk tersimpan'); render();
   },
   async out(form) {
-    const o = fd(form), m = matById(o.materialId); if (!m) throw new Error('Pilih material');
+    const o = fd(form), items = pickItems(form);
+    if (!items.length) throw new Error('Centang minimal satu material');
     if (o.tujuan === 'Alokasi ke Proyek' && !o.projectId) throw new Error('Pilih proyek untuk alokasi');
-    const qn = Number(o.qty); if (qn > m.kantor) throw new Error('Jumlah melebihi stok kantor (' + fmt(m.kantor) + ' ' + m.unit + ')');
     const pj = projById(o.projectId);
-    if (!(await confirmBox('Simpan barang keluar?', [['Tanggal', o.tanggal], ['Material', label(m)], ['Jumlah', fmt(qn) + ' ' + m.unit], ['Tujuan', o.tujuan], ['Proyek', pj ? pj.name : ''], ['PIC', o.pic], ['Stok kantor jadi', fmt(m.kantor - qn) + ' ' + m.unit]]))) return;
-    ls.set('imsPic', o.pic); const k = 'out';
-    await act('stockOut', { requestId: rid(k), materialId: o.materialId, qty: o.qty, tanggal: o.tanggal, tujuan: o.tujuan, projectId: o.projectId, pic: o.pic, note: o.note });
-    rdone(k); toast(o.tujuan === 'Alokasi ke Proyek' ? 'Dialokasikan ke proyek' : 'Barang keluar tersimpan'); render();
+    const lines = items.map(it => {
+      const m = matById(it.materialId), q = Number(it.qty);
+      if (!(q > 0)) throw new Error('Isi jumlah untuk "' + label(m) + '"');
+      if (q > m.kantor) throw new Error('Jumlah "' + label(m) + '" melebihi stok kantor (' + fmt(m.kantor) + ' ' + m.unit + ')');
+      return [label(m), '-' + fmt(q) + ' ' + m.unit + ' → stok jadi ' + fmt(m.kantor - q)];
+    });
+    if (!(await confirmBox('Simpan ' + items.length + ' barang keluar?', [['Tanggal', o.tanggal], ['Tujuan', o.tujuan], ['Proyek', pj ? pj.name : ''], ['PIC', o.pic]].concat(lines)))) return;
+    ls.set('imsPic', o.pic); const k = 'out:' + JSON.stringify([o.tanggal, o.tujuan, o.projectId, items]);
+    await act('stockOutBatch', { requestId: rid(k), items: items, tanggal: o.tanggal, tujuan: o.tujuan, projectId: o.projectId, pic: o.pic, note: o.note });
+    rdone(k); toast(o.tujuan === 'Alokasi ke Proyek' ? items.length + ' material dialokasikan ke proyek' : items.length + ' barang keluar tersimpan'); render();
+  },
+  async editin(form) {
+    const o = fd(form);
+    await act('updateStockIn', { trx: form.dataset.trx, qty: o.qty, tanggal: o.tanggal, sumber: o.sumber, supplier: o.supplier, pic: o.pic, note: o.note });
+    ls.set('imsPic', o.pic); closeModal(); toast('Perubahan tersimpan'); render();
+  },
+  async editout(form) {
+    const o = fd(form);
+    await act('updateStockOut', { trx: form.dataset.trx, qty: o.qty, tanggal: o.tanggal, tujuan: o.tujuan, projectId: o.projectId, pic: o.pic, note: o.note });
+    ls.set('imsPic', o.pic); closeModal(); toast('Perubahan tersimpan'); render();
   },
   async proj(form) {
     const o = fd(form), id = form.dataset.id;
